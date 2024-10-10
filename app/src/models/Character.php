@@ -21,6 +21,7 @@ class Character {
     }
 
     public function createCharacter($data) {
+        unset($data['id']);
         $stmt = $this->db->prepare("INSERT INTO characters (name, birth_date, kingdom, equipment_id, faction_id) VALUES (:name, :birth_date, :kingdom, :equipment_id, :faction_id)");
         return $stmt->execute($data);
     }

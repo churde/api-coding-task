@@ -5,6 +5,10 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $app = AppFactory::create();
 
+// Add body parsing middleware to handle JSON request bodies
+// This allows us to easily access parsed request body data in our route handlers
+$app->addBodyParsingMiddleware();
+
 // Add routing middleware
 $app->addRoutingMiddleware();
 
