@@ -5,10 +5,14 @@ use App\Models\Character;
 use OpenApi\Annotations as OA;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
+use App\Cache;
+use Predis\Connection\ConnectionException;
 
 // Create a log channel
 $log = new Logger('api');
 $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
+
+$cache = new Cache();
 
 /**
  * @OA\Info(
@@ -26,23 +30,48 @@ $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG)
  *     @OA\Response(
  *         response=200,
  *         description="Successful operation",
- *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Character"))
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Character")),
+ *             @OA\Property(property="meta", type="object",
+ *                 @OA\Property(property="cache_used", type="boolean")
+ *             )
+ *         )
  *     )
  * )
  */
-$app->get('/characters', function (Request $request, Response $response) use ($log) {
-    $log->info('Fetching all characters');
-    
-    $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+$app->get('/characters', function (Request $request, Response $response) use ($log, $cache) {
+    $cacheKey = 'all_characters';
+    $cachedData = $cache->get($cacheKey);
+    $cacheUsed = false;
 
-    $characterModel = new Character($pdo);
-    $characters = $characterModel->getAllCharacters();
+    if ($cachedData) {
+        $log->info('Returning cached characters');
+        $characters = $cachedData;
+        $cacheUsed = true;
+    } else {
+        $log->info('Fetching all characters from database');
+        
+        $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
 
-    $log->info('Returned ' . count($characters) . ' characters');
-    $response->getBody()->write(json_encode($characters));
+        $characterModel = new Character($pdo);
+        $characters = $characterModel->getAllCharacters();
+
+        $cache->set($cacheKey, $characters, 3600); // Cache for 1 hour
+        $log->info('Cached ' . count($characters) . ' characters');
+    }
+
+    $result = [
+        'data' => $characters,
+        'meta' => [
+            'cache_used' => $cacheUsed
+        ]
+    ];
+
+    $response->getBody()->write(json_encode($result));
     return $response->withHeader('Content-Type', 'application/json');
 });
 
@@ -62,7 +91,7 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
  *     )
  * )
  */
-$app->post('/characters', function (Request $request, Response $response) use ($log) {
+$app->post('/characters', function (Request $request, Response $response) use ($log, $cache) {
     $log->info('Creating a new character');
     
     $data = $request->getParsedBody();
@@ -77,6 +106,8 @@ $app->post('/characters', function (Request $request, Response $response) use ($
     $log->info('Created character with ID: ' . $newCharacter['id']);
     $response->getBody()->write(json_encode($newCharacter));
     return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+    
+    $cache->delete('all_characters'); // Invalidate the cache
 });
 
 /**
@@ -93,7 +124,13 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     @OA\Response(
  *         response=200,
  *         description="Successful operation",
- *         @OA\JsonContent(ref="#/components/schemas/Character")
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="data", ref="#/components/schemas/Character"),
+ *             @OA\Property(property="meta", type="object",
+ *                 @OA\Property(property="cache_used", type="boolean")
+ *             )
+ *         )
  *     ),
  *     @OA\Response(
  *         response=404,
@@ -101,24 +138,46 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     )
  * )
  */
-$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log) {
-    $log->info('Fetching character with ID: ' . $args['id']);
-    
-    $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache) {
+    $cacheKey = 'character_' . $args['id'];
+    $cachedData = $cache->get($cacheKey);
+    $cacheUsed = false;
 
-    $characterModel = new Character($pdo);
-    $character = $characterModel->getCharacterById($args['id']);
+    if ($cachedData) {
+        $log->info('Returning cached character with ID: ' . $args['id']);
+        $character = $cachedData;
+        $cacheUsed = true;
+    } else {
+        $log->info('Fetching character with ID: ' . $args['id']);
+        
+        $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+
+        $characterModel = new Character($pdo);
+        $character = $characterModel->getCharacterById($args['id']);
+
+        if ($character) {
+            $cache->set($cacheKey, $character, 3600); // Cache for 1 hour
+            $log->info('Cached character with ID: ' . $args['id']);
+        }
+    }
 
     if (!$character) {
         $log->warning('Character not found with ID: ' . $args['id']);
         return $response->withStatus(404);
     }
 
+    $result = [
+        'data' => $character,
+        'meta' => [
+            'cache_used' => $cacheUsed
+        ]
+    ];
+
     $log->info('Returned character with ID: ' . $args['id']);
-    $response->getBody()->write(json_encode($character));
+    $response->getBody()->write(json_encode($result));
     return $response->withHeader('Content-Type', 'application/json');
 });
 
@@ -148,7 +207,7 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log) {
+$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache) {
     $log->info('Updating character with ID: ' . $args['id']);
     
     $data = $request->getParsedBody();
@@ -168,6 +227,11 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
     $log->info('Updated character with ID: ' . $args['id']);
     $response->getBody()->write(json_encode($updatedCharacter));
     return $response->withHeader('Content-Type', 'application/json');
+    
+    if ($updatedCharacter) {
+        $cache->delete('all_characters'); // Invalidate the list cache
+        $cache->set('character_' . $args['id'], $updatedCharacter, 3600);
+    }
 });
 
 /**
@@ -191,7 +255,7 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log) {
+$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache) {
     $log->info('Deleting character with ID: ' . $args['id']);
     
     $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
@@ -209,18 +273,9 @@ $app->delete('/characters/{id}', function (Request $request, Response $response,
 
     $log->info('Deleted character with ID: ' . $args['id']);
     return $response->withStatus(204);
+    
+    if ($result) {
+        $cache->delete('all_characters'); // Invalidate the list cache
+        $cache->delete('character_' . $args['id']); // Remove the individual character cache
+    }
 });
-
-/**
- * @OA\Schema(
- *     schema="Character",
- *     required={"name", "birth_date", "kingdom"},
- *     @OA\Property(property="id", type="integer"),
- *     @OA\Property(property="name", type="string"),
- *     @OA\Property(property="birth_date", type="string", format="date"),
- *     @OA\Property(property="kingdom", type="string"),
- *     @OA\Property(property="equipment_id", type="integer"),
- *     @OA\Property(property="faction_id", type="integer")
- * )
- */
-

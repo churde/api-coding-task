@@ -32,5 +32,12 @@ services:
     networks:
       - bridge
 
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - bridge
+
 networks:
   bridge:
