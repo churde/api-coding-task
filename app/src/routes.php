@@ -1,18 +1,55 @@
 <?php
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use App\Models\Character;
 use OpenApi\Annotations as OA;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use App\Cache;
 use Predis\Connection\ConnectionException;
+use Slim\Factory\AppFactory;
+use Slim\Psr7\Response as SlimResponse;
+
+// Add this near the top of your file, with the other OpenAPI annotations
+
+/**
+ * @OA\Schema(
+ *     schema="Character",
+ *     required={"name", "birth_date", "kingdom"},
+ *     @OA\Property(property="id", type="integer"),
+ *     @OA\Property(property="name", type="string"),
+ *     @OA\Property(property="birth_date", type="string", format="date"),
+ *     @OA\Property(property="kingdom", type="string"),
+ *     @OA\Property(property="equipment_id", type="integer"),
+ *     @OA\Property(property="faction_id", type="integer")
+ * )
+ */
 
 // Create a log channel
 $log = new Logger('api');
 $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
 
 $cache = new Cache();
+
+// Define the API key middleware
+$apiKeyMiddleware = function (Request $request, RequestHandler $handler) {
+    $apiKey = $request->getHeaderLine('X-API-Key');
+    if ($apiKey !== 'your-secret-api-key') {
+        $response = new SlimResponse();
+        $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
+        return $response
+            ->withStatus(401)
+            ->withHeader('Content-Type', 'application/json');
+    }
+    return $handler->handle($request);
+};
+
+// Create the Slim app
+$app = AppFactory::create();
+
+// Add the API key middleware
+$app->add($apiKeyMiddleware);
 
 /**
  * @OA\Info(
@@ -23,10 +60,20 @@ $cache = new Cache();
  */
 
 /**
+ * @OA\SecurityScheme(
+ *     type="apiKey",
+ *     in="header",
+ *     securityScheme="X-API-Key",
+ *     name="X-API-Key"
+ * )
+ */
+
+/**
  * @OA\Get(
  *     path="/characters",
  *     summary="Get all characters",
  *     tags={"Characters"},
+ *     security={{"X-API-Key": {}}},
  *     @OA\Response(
  *         response=200,
  *         description="Successful operation",
@@ -37,6 +84,10 @@ $cache = new Cache();
  *                 @OA\Property(property="cache_used", type="boolean")
  *             )
  *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
  *     )
  * )
  */
@@ -80,6 +131,7 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
  *     path="/characters",
  *     summary="Create a new character",
  *     tags={"Characters"},
+ *     security={{"X-API-Key": {}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(ref="#/components/schemas/Character")
@@ -88,6 +140,10 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
  *         response=201,
  *         description="Character created successfully",
  *         @OA\JsonContent(ref="#/components/schemas/Character")
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
  *     )
  * )
  */
@@ -115,6 +171,7 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     path="/characters/{id}",
  *     summary="Get a character by ID",
  *     tags={"Characters"},
+ *     security={{"X-API-Key": {}}},
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -135,6 +192,10 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     @OA\Response(
  *         response=404,
  *         description="Character not found"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
  *     )
  * )
  */
@@ -186,6 +247,7 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     path="/characters/{id}",
  *     summary="Update a character",
  *     tags={"Characters"},
+ *     security={{"X-API-Key": {}}},
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -204,6 +266,10 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     @OA\Response(
  *         response=404,
  *         description="Character not found"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
  *     )
  * )
  */
@@ -239,6 +305,7 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     path="/characters/{id}",
  *     summary="Delete a character",
  *     tags={"Characters"},
+ *     security={{"X-API-Key": {}}},
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -252,6 +319,10 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     @OA\Response(
  *         response=404,
  *         description="Character not found"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
  *     )
  * )
  */
