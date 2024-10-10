@@ -16,6 +16,7 @@ services:
 
   db:
     image: percona:5.7
+    platform: linux/amd64
     ports:
       - "3306:3306"
     volumes:
