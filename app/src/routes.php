@@ -72,8 +72,17 @@ $container->set('cacheConfig', function () {
     return require __DIR__ . '/../config/cache_config.php';
 });
 
+$container->set('tokenManager', function () {
+    $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
+    return new \App\Services\TokenManager($secretKey);
+});
+
+$container->set('permissionChecker', function ($c) {
+    return new \App\Services\PermissionChecker($c->get('cache'), $c->get('db'));
+});
+
 $container->set('auth', function ($c) {
-    return new Auth($c->get('cache'), $c->get('db'), $c->get('cacheConfig'));
+    return new Auth($c->get('tokenManager'), $c->get('permissionChecker'));
 });
 
 $container->set('characterModel', function ($c) {
