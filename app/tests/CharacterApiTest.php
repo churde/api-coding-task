@@ -49,7 +49,14 @@ class CharacterApiTest extends TestCase
     {
         $response = $this->makeRequest('GET', '/characters/1');
         $this->assertStringContainsString('200 OK', $response['status']);
+
         $data = json_decode($response['body'], true);
+
+        // Debugging: Check if $data is null
+        if ($data === null) {
+            echo "JSON decode error: " . json_last_error_msg() . "\n";
+        }
+
         $this->assertArrayHasKey('data', $data);
         $this->assertArrayHasKey('id', $data['data']);
     }

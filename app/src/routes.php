@@ -3,12 +3,12 @@
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use App\Controllers\CharacterController;
 use App\Models\Character;
 use OpenApi\Annotations as OA;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use App\Cache;
-use Predis\Connection\ConnectionException;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as SlimResponse;
 use App\Auth;
@@ -53,10 +53,6 @@ use DI\Container;
  * )
  */
 
-// Create a log channel
-$log = new Logger('api');
-$log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
-
 // Create Container
 $container = new Container();
 
@@ -82,6 +78,22 @@ $container->set('auth', function ($c) {
 
 $container->set('characterModel', function ($c) {
     return new Character($c->get('db'));
+});
+
+$container->set('log', function () {
+    $log = new Logger('api');
+    $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
+    return $log;
+});
+
+$container->set('characterController', function ($c) {
+    return new CharacterController(
+        $c->get('auth'),
+        $c->get('cache'),
+        $c->get('cacheConfig'),
+        $c->get('characterModel'),
+        $c->get('log')
+    );
 });
 
 // Create the Slim app
@@ -155,51 +167,8 @@ $app->add($authMiddleware);
  *     )
  * )
  */
-$app->get('/characters', function (Request $request, Response $response) use ($container, $log) {
-    $auth = $container->get('auth');
-    $cache = $container->get('cache');
-    $cacheConfig = $container->get('cacheConfig');
-    $characterModel = $container->get('characterModel');
-
-    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
-    if (!$auth->hasPermission($token, 'read', 'character')) {
-        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(403);
-    }
-
-    $queryParams = $request->getQueryParams();
-    $page = isset($queryParams['page']) ? (int)$queryParams['page'] : 1;
-    $perPage = isset($queryParams['per_page']) ? (int)$queryParams['per_page'] : 10;
-
-    $cacheKey = "all_characters_with_relations_page_{$page}_perPage_{$perPage}";
-    $cachedData = null;
-    $cacheUsed = false;
-
-    if ($cacheConfig['enable_cache']['get_all_characters']) {
-        $cachedData = $cache->get($cacheKey);
-    }
-
-    if ($cachedData) {
-        $log->info('Returning cached characters with relations');
-        $result = $cachedData;
-        $cacheUsed = true;
-    } else {
-        $log->info('Fetching all characters with relations from database');
-
-        $result = $characterModel->getAllCharactersWithRelations($page, $perPage);
-
-        if ($cacheConfig['enable_cache']['get_all_characters']) {
-            $cache->set($cacheKey, $result, $cacheConfig['cache_ttl']);
-            $log->info('Cached characters with relations for page ' . $page);
-        }
-    }
-
-    $result['meta']['cache_used'] = $cacheUsed;
-
-    $response->getBody()->write(json_encode($result));
-    return $response->withHeader('Content-Type', 'application/json');
+$app->get('/characters', function (Request $request, Response $response) use ($container) {
+    return $container->get('characterController')->getAllCharacters($request, $response);
 });
 
 /**
@@ -229,32 +198,8 @@ $app->get('/characters', function (Request $request, Response $response) use ($c
  *     )
  * )
  */
-$app->post('/characters', function (Request $request, Response $response) use ($container, $log) {
-    $auth = $container->get('auth');
-    $cache = $container->get('cache');
-    $cacheConfig = $container->get('cacheConfig');
-    $characterModel = $container->get('characterModel');
-
-    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
-    if (!$auth->hasPermission($token, 'create', 'character')) {
-        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(403);
-    }
-
-    $log->info('Creating a new character');
-
-    $data = $request->getParsedBody();
-    $newCharacter = $characterModel->createCharacter($data);
-
-    $log->info('Created character with ID: ' . $newCharacter['id']);
-    $response->getBody()->write(json_encode($newCharacter));
-    return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
-
-    if ($cacheConfig['enable_cache']['get_all_characters']) {
-        $cache->delete('all_characters_with_relations');
-    }
+$app->post('/characters', function (Request $request, Response $response) use ($container) {
+    return $container->get('characterController')->createCharacter($request, $response);
 });
 
 /**
@@ -296,58 +241,8 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     )
  * )
  */
-$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($container, $log) {
-    $auth = $container->get('auth');
-    $cache = $container->get('cache');
-    $cacheConfig = $container->get('cacheConfig');
-    $characterModel = $container->get('characterModel');
-
-    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
-    if (!$auth->hasPermission($token, 'read', 'character')) {
-        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(403);
-    }
-
-    $cacheKey = 'character_with_relations_' . $args['id'];
-    $cachedData = null;
-    $cacheUsed = false;
-
-    if ($cacheConfig['enable_cache']['get_character_by_id']) {
-        $cachedData = $cache->get($cacheKey);
-    }
-
-    if ($cachedData) {
-        $log->info('Returning cached character with relations, ID: ' . $args['id']);
-        $character = $cachedData;
-        $cacheUsed = true;
-    } else {
-        $log->info('Fetching character with relations, ID: ' . $args['id']);
-
-        $character = $characterModel->getCharacterWithRelations($args['id']);
-
-        if ($character && $cacheConfig['enable_cache']['get_character_by_id']) {
-            $cache->set($cacheKey, $character, $cacheConfig['cache_ttl']);
-            $log->info('Cached character with relations, ID: ' . $args['id']);
-        }
-    }
-
-    if (!$character) {
-        $log->warning('Character not found with ID: ' . $args['id']);
-        return $response->withStatus(404);
-    }
-
-    $result = [
-        'data' => $character,
-        'meta' => [
-            'cache_used' => $cacheUsed
-        ]
-    ];
-
-    $log->info('Returned character with relations, ID: ' . $args['id']);
-    $response->getBody()->write(json_encode($result));
-    return $response->withHeader('Content-Type', 'application/json');
+$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
+    return $container->get('characterController')->getCharacterById($request, $response, $args);
 });
 
 /**
@@ -387,36 +282,8 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($container, $log) {
-    $auth = $container->get('auth');
-    $cache = $container->get('cache');
-    $cacheConfig = $container->get('cacheConfig');
-    $characterModel = $container->get('characterModel');
-
-    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
-    if (!$auth->hasPermission($token, 'update', 'character')) {
-        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(403);
-    }
-
-    $log->info('Updating character with ID: ' . $args['id']);
-
-    $data = $request->getParsedBody();
-    $updatedCharacter = $characterModel->updateCharacter($args['id'], $data);
-
-    if (!$updatedCharacter) {
-        $log->warning('Character not found for update with ID: ' . $args['id']);
-        return $response->withStatus(404);
-    }
-
-    $cache->delete('all_characters_with_relations');
-    $cache->delete('character_with_relations_' . $args['id']);
-
-    $log->info('Updated character with ID: ' . $args['id']);
-    $response->getBody()->write(json_encode($updatedCharacter));
-    return $response->withHeader('Content-Type', 'application/json');
+$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
+    return $container->get('characterController')->updateCharacter($request, $response, $args);
 });
 
 /**
@@ -451,33 +318,6 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($container, $log) {
-    $auth = $container->get('auth');
-    $cache = $container->get('cache');
-    $cacheConfig = $container->get('cacheConfig');
-    $characterModel = $container->get('characterModel');
-
-    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
-    if (!$auth->hasPermission($token, 'delete', 'character')) {
-        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(403);
-    }
-
-    $log->info('Deleting character with ID: ' . $args['id']);
-
-    $result = $characterModel->deleteCharacter($args['id']);
-
-    if (!$result) {
-        $log->warning('Character not found for deletion with ID: ' . $args['id']);
-        return $response->withStatus(404);
-    }
-
-    // Invalidate cache
-    $cache->delete('all_characters_with_relations');
-    $cache->delete('character_with_relations_' . $args['id']);
-
-    $log->info('Deleted character with ID: ' . $args['id']);
-    return $response->withStatus(204);
+$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
+    return $container->get('characterController')->deleteCharacter($request, $response, $args);
 });
