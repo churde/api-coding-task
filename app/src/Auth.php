@@ -4,16 +4,21 @@ namespace App;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use App\Cache;
+use PDO;
 
 class Auth
 {
     private $cache;
     private $secretKey;
+    private $db;
+    private $config;
 
-    public function __construct(Cache $cache)
+    public function __construct(Cache $cache, PDO $db, array $config)
     {
         $this->cache = $cache;
         $this->secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
+        $this->db = $db;
+        $this->config = $config;
     }
 
     public function generateToken($userId, $roleId)
@@ -63,8 +68,7 @@ class Auth
     {
         // Implement database query to fetch permissions for the role
         // This is just a placeholder
-        $pdo = new \PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root');
-        $stmt = $pdo->prepare("SELECT p.name FROM permissions p 
+        $stmt = $this->db->prepare("SELECT p.name FROM permissions p 
                                JOIN role_permissions rp ON p.id = rp.permission_id 
                                WHERE rp.role_id = ?");
         $stmt->execute([$roleId]);

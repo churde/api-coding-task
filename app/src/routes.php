@@ -12,6 +12,7 @@ use Predis\Connection\ConnectionException;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as SlimResponse;
 use App\Auth;
+use DI\Container;
 
 // Add this near the top of your file, with the other OpenAPI annotations
 
@@ -56,16 +57,42 @@ use App\Auth;
 $log = new Logger('api');
 $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
 
-$cache = new Cache();
+// Create Container
+$container = new Container();
 
-// Create Auth instance
-$auth = new Auth($cache);
+// Set up container definitions
+$container->set('db', function () {
+    return new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+});
 
-// Load cache configuration
-$cacheConfig = require __DIR__ . '/../config/cache_config.php';
+$container->set('cache', function () {
+    return new Cache();
+});
+
+$container->set('cacheConfig', function () {
+    return require __DIR__ . '/../config/cache_config.php';
+});
+
+$container->set('auth', function ($c) {
+    return new Auth($c->get('cache'), $c->get('db'), $c->get('cacheConfig'));
+});
+
+$container->set('characterModel', function ($c) {
+    return new Character($c->get('db'));
+});
+
+// Create the Slim app
+$app = AppFactory::createFromContainer($container);
+
+// Add body parsing middleware
+$app->addBodyParsingMiddleware();
 
 // Update the API key middleware to use JWT
-$authMiddleware = function (Request $request, RequestHandler $handler) use ($auth) {
+$authMiddleware = function (Request $request, RequestHandler $handler) use ($container) {
+    $auth = $container->get('auth');
     $token = $request->getHeaderLine('Authorization');
     $token = str_replace('Bearer ', '', $token);
     if (!$auth->validateToken($token)) {
@@ -77,12 +104,6 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($aut
     }
     return $handler->handle($request);
 };
-
-// Create the Slim app
-$app = AppFactory::create();
-// Add body parsing middleware to handle JSON request bodies
-// This allows us to easily access parsed request body data in our route handlers
-$app->addBodyParsingMiddleware();
 
 // Add the auth middleware
 $app->add($authMiddleware);
@@ -134,7 +155,12 @@ $app->add($authMiddleware);
  *     )
  * )
  */
-$app->get('/characters', function (Request $request, Response $response) use ($log, $cache, $auth, $cacheConfig) {
+$app->get('/characters', function (Request $request, Response $response) use ($container, $log) {
+    $auth = $container->get('auth');
+    $cache = $container->get('cache');
+    $cacheConfig = $container->get('cacheConfig');
+    $characterModel = $container->get('characterModel');
+
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'read', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -162,12 +188,6 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
     } else {
         $log->info('Fetching all characters with relations from database');
 
-        $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-
-        $characterModel = new Character($pdo);
         $result = $characterModel->getAllCharactersWithRelations($page, $perPage);
 
         if ($cacheConfig['enable_cache']['get_all_characters']) {
@@ -209,7 +229,12 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
  *     )
  * )
  */
-$app->post('/characters', function (Request $request, Response $response) use ($log, $cache, $auth, $cacheConfig) {
+$app->post('/characters', function (Request $request, Response $response) use ($container, $log) {
+    $auth = $container->get('auth');
+    $cache = $container->get('cache');
+    $cacheConfig = $container->get('cacheConfig');
+    $characterModel = $container->get('characterModel');
+
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'create', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -221,12 +246,6 @@ $app->post('/characters', function (Request $request, Response $response) use ($
     $log->info('Creating a new character');
 
     $data = $request->getParsedBody();
-    $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-
-    $characterModel = new Character($pdo);
     $newCharacter = $characterModel->createCharacter($data);
 
     $log->info('Created character with ID: ' . $newCharacter['id']);
@@ -277,7 +296,12 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     )
  * )
  */
-$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth, $cacheConfig) {
+$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($container, $log) {
+    $auth = $container->get('auth');
+    $cache = $container->get('cache');
+    $cacheConfig = $container->get('cacheConfig');
+    $characterModel = $container->get('characterModel');
+
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'read', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -301,12 +325,6 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
     } else {
         $log->info('Fetching character with relations, ID: ' . $args['id']);
 
-        $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-
-        $characterModel = new Character($pdo);
         $character = $characterModel->getCharacterWithRelations($args['id']);
 
         if ($character && $cacheConfig['enable_cache']['get_character_by_id']) {
@@ -369,7 +387,12 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth, $cacheConfig) {
+$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($container, $log) {
+    $auth = $container->get('auth');
+    $cache = $container->get('cache');
+    $cacheConfig = $container->get('cacheConfig');
+    $characterModel = $container->get('characterModel');
+
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'update', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -381,13 +404,6 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
     $log->info('Updating character with ID: ' . $args['id']);
 
     $data = $request->getParsedBody();
-
-    $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-
-    $characterModel = new Character($pdo);
     $updatedCharacter = $characterModel->updateCharacter($args['id'], $data);
 
     if (!$updatedCharacter) {
@@ -435,7 +451,12 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth, $cacheConfig) {
+$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($container, $log) {
+    $auth = $container->get('auth');
+    $cache = $container->get('cache');
+    $cacheConfig = $container->get('cacheConfig');
+    $characterModel = $container->get('characterModel');
+
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'delete', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -446,12 +467,6 @@ $app->delete('/characters/{id}', function (Request $request, Response $response,
 
     $log->info('Deleting character with ID: ' . $args['id']);
 
-    $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-
-    $characterModel = new Character($pdo);
     $result = $characterModel->deleteCharacter($args['id']);
 
     if (!$result) {
