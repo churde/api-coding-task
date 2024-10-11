@@ -112,7 +112,10 @@ $app->add($authMiddleware);
 $app->get('/characters', function (Request $request, Response $response) use ($log, $cache, $auth) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'read', 'character')) {
-        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(403);
     }
 
     $cacheKey = 'all_characters';
@@ -179,7 +182,10 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
 $app->post('/characters', function (Request $request, Response $response) use ($log, $cache, $auth) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'create', 'character')) {
-        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(403);
     }
 
     $log->info('Creating a new character');
@@ -242,7 +248,10 @@ $app->post('/characters', function (Request $request, Response $response) use ($
 $app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'read', 'character')) {
-        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(403);
     }
 
     $cacheKey = 'character_' . $args['id'];
@@ -327,7 +336,10 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
 $app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'update', 'character')) {
-        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(403);
     }
 
     $log->info('Updating character with ID: ' . $args['id']);
@@ -391,7 +403,10 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
 $app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'delete', 'character')) {
-        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+        $response->getBody()->write(json_encode(['error' => 'Forbidden']));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(403);
     }
 
     $log->info('Deleting character with ID: ' . $args['id']);
