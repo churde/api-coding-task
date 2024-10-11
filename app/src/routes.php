@@ -76,6 +76,9 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($aut
 
 // Create the Slim app
 $app = AppFactory::create();
+// Add body parsing middleware to handle JSON request bodies
+// This allows us to easily access parsed request body data in our route handlers
+$app->addBodyParsingMiddleware();
 
 // Add the auth middleware
 $app->add($authMiddleware);
@@ -345,6 +348,9 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
     $log->info('Updating character with ID: ' . $args['id']);
     
     $data = $request->getParsedBody();
+
+    die(var_dump($data));
+
     $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
