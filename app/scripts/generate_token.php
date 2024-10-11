@@ -3,8 +3,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use DI\Container;
 use App\Auth;
-use App\Cache;
+use App\Services\TokenManager;
+use App\Services\PermissionChecker;
+use App\Cache; // Use the correct cache class
+use Predis\Client;
 
+// Create a DI container
 $container = new Container();
 
 $container->set('db', function () {
@@ -15,15 +19,20 @@ $container->set('db', function () {
 });
 
 $container->set('cache', function () {
-    return new Cache();
+    return new Cache(); // Use the correct cache class
 });
 
-$container->set('cacheConfig', function () {
-    return require __DIR__ . '/../config/cache_config.php';
+$container->set('tokenManager', function () {
+    $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
+    return new TokenManager($secretKey);
+});
+
+$container->set('permissionChecker', function ($c) {
+    return new PermissionChecker($c->get('cache'), $c->get('db'));
 });
 
 $container->set('auth', function ($c) {
-    return new Auth($c->get('cache'), $c->get('db'), $c->get('cacheConfig'));
+    return new Auth($c->get('tokenManager'), $c->get('permissionChecker'));
 });
 
 $auth = $container->get('auth');

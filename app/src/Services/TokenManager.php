@@ -17,7 +17,7 @@ class TokenManager
     public function generateToken($userId, $roleId)
     {
         $issuedAt = time();
-        $expirationTime = $issuedAt + 3600; // Token valid for 1 hour
+        $expirationTime = $issuedAt + 360000; // Token valid for 100 hour
 
         $payload = [
             'iat' => $issuedAt,
