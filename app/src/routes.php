@@ -1,4 +1,5 @@
 <?php
+
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
@@ -60,6 +61,9 @@ $cache = new Cache();
 // Create Auth instance
 $auth = new Auth($cache);
 
+// Load cache configuration
+$cacheConfig = require __DIR__ . '/../config/cache_config.php';
+
 // Update the API key middleware to use JWT
 $authMiddleware = function (Request $request, RequestHandler $handler) use ($auth) {
     $token = $request->getHeaderLine('Authorization');
@@ -89,6 +93,20 @@ $app->add($authMiddleware);
  *     summary="Get all characters",
  *     tags={"Characters"},
  *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="page",
+ *         in="query",
+ *         description="Page number",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="per_page",
+ *         in="query",
+ *         description="Number of items per page",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=10)
+ *     ),
  *     @OA\Response(
  *         response=200,
  *         description="Successful operation",
@@ -96,6 +114,10 @@ $app->add($authMiddleware);
  *             type="object",
  *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Character")),
  *             @OA\Property(property="meta", type="object",
+ *                 @OA\Property(property="current_page", type="integer"),
+ *                 @OA\Property(property="per_page", type="integer"),
+ *                 @OA\Property(property="total_count", type="integer"),
+ *                 @OA\Property(property="total_pages", type="integer"),
  *                 @OA\Property(property="cache_used", type="boolean")
  *             )
  *         )
@@ -112,7 +134,7 @@ $app->add($authMiddleware);
  *     )
  * )
  */
-$app->get('/characters', function (Request $request, Response $response) use ($log, $cache, $auth) {
+$app->get('/characters', function (Request $request, Response $response) use ($log, $cache, $auth, $cacheConfig) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'read', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -121,35 +143,40 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
             ->withStatus(403);
     }
 
-    $cacheKey = 'all_characters';
-    $cachedData = $cache->get($cacheKey);
+    $queryParams = $request->getQueryParams();
+    $page = isset($queryParams['page']) ? (int)$queryParams['page'] : 1;
+    $perPage = isset($queryParams['per_page']) ? (int)$queryParams['per_page'] : 10;
+
+    $cacheKey = "all_characters_with_relations_page_{$page}_perPage_{$perPage}";
+    $cachedData = null;
     $cacheUsed = false;
 
+    if ($cacheConfig['enable_cache']['get_all_characters']) {
+        $cachedData = $cache->get($cacheKey);
+    }
+
     if ($cachedData) {
-        $log->info('Returning cached characters');
-        $characters = $cachedData;
+        $log->info('Returning cached characters with relations');
+        $result = $cachedData;
         $cacheUsed = true;
     } else {
-        $log->info('Fetching all characters from database');
-        
+        $log->info('Fetching all characters with relations from database');
+
         $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
 
         $characterModel = new Character($pdo);
-        $characters = $characterModel->getAllCharacters();
+        $result = $characterModel->getAllCharactersWithRelations($page, $perPage);
 
-        $cache->set($cacheKey, $characters, 3600); // Cache for 1 hour
-        $log->info('Cached ' . count($characters) . ' characters');
+        if ($cacheConfig['enable_cache']['get_all_characters']) {
+            $cache->set($cacheKey, $result, $cacheConfig['cache_ttl']);
+            $log->info('Cached characters with relations for page ' . $page);
+        }
     }
 
-    $result = [
-        'data' => $characters,
-        'meta' => [
-            'cache_used' => $cacheUsed
-        ]
-    ];
+    $result['meta']['cache_used'] = $cacheUsed;
 
     $response->getBody()->write(json_encode($result));
     return $response->withHeader('Content-Type', 'application/json');
@@ -182,7 +209,7 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
  *     )
  * )
  */
-$app->post('/characters', function (Request $request, Response $response) use ($log, $cache, $auth) {
+$app->post('/characters', function (Request $request, Response $response) use ($log, $cache, $auth, $cacheConfig) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'create', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -192,7 +219,7 @@ $app->post('/characters', function (Request $request, Response $response) use ($
     }
 
     $log->info('Creating a new character');
-    
+
     $data = $request->getParsedBody();
     $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -205,8 +232,10 @@ $app->post('/characters', function (Request $request, Response $response) use ($
     $log->info('Created character with ID: ' . $newCharacter['id']);
     $response->getBody()->write(json_encode($newCharacter));
     return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
-    
-    $cache->delete('all_characters'); // Invalidate the cache
+
+    if ($cacheConfig['enable_cache']['get_all_characters']) {
+        $cache->delete('all_characters_with_relations');
+    }
 });
 
 /**
@@ -248,7 +277,7 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     )
  * )
  */
-$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
+$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth, $cacheConfig) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'read', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -257,28 +286,32 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
             ->withStatus(403);
     }
 
-    $cacheKey = 'character_' . $args['id'];
-    $cachedData = $cache->get($cacheKey);
+    $cacheKey = 'character_with_relations_' . $args['id'];
+    $cachedData = null;
     $cacheUsed = false;
 
+    if ($cacheConfig['enable_cache']['get_character_by_id']) {
+        $cachedData = $cache->get($cacheKey);
+    }
+
     if ($cachedData) {
-        $log->info('Returning cached character with ID: ' . $args['id']);
+        $log->info('Returning cached character with relations, ID: ' . $args['id']);
         $character = $cachedData;
         $cacheUsed = true;
     } else {
-        $log->info('Fetching character with ID: ' . $args['id']);
-        
+        $log->info('Fetching character with relations, ID: ' . $args['id']);
+
         $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
 
         $characterModel = new Character($pdo);
-        $character = $characterModel->getCharacterById($args['id']);
+        $character = $characterModel->getCharacterWithRelations($args['id']);
 
-        if ($character) {
-            $cache->set($cacheKey, $character, 3600); // Cache for 1 hour
-            $log->info('Cached character with ID: ' . $args['id']);
+        if ($character && $cacheConfig['enable_cache']['get_character_by_id']) {
+            $cache->set($cacheKey, $character, $cacheConfig['cache_ttl']);
+            $log->info('Cached character with relations, ID: ' . $args['id']);
         }
     }
 
@@ -294,7 +327,7 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
         ]
     ];
 
-    $log->info('Returned character with ID: ' . $args['id']);
+    $log->info('Returned character with relations, ID: ' . $args['id']);
     $response->getBody()->write(json_encode($result));
     return $response->withHeader('Content-Type', 'application/json');
 });
@@ -336,7 +369,7 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
+$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth, $cacheConfig) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'update', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -346,7 +379,7 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
     }
 
     $log->info('Updating character with ID: ' . $args['id']);
-    
+
     $data = $request->getParsedBody();
 
     $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
@@ -362,14 +395,12 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
         return $response->withStatus(404);
     }
 
+    $cache->delete('all_characters_with_relations');
+    $cache->delete('character_with_relations_' . $args['id']);
+
     $log->info('Updated character with ID: ' . $args['id']);
     $response->getBody()->write(json_encode($updatedCharacter));
     return $response->withHeader('Content-Type', 'application/json');
-    
-    if ($updatedCharacter) {
-        $cache->delete('all_characters'); // Invalidate the list cache
-        $cache->set('character_' . $args['id'], $updatedCharacter, 3600);
-    }
 });
 
 /**
@@ -404,7 +435,7 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
+$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth, $cacheConfig) {
     $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
     if (!$auth->hasPermission($token, 'delete', 'character')) {
         $response->getBody()->write(json_encode(['error' => 'Forbidden']));
@@ -414,7 +445,7 @@ $app->delete('/characters/{id}', function (Request $request, Response $response,
     }
 
     $log->info('Deleting character with ID: ' . $args['id']);
-    
+
     $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -428,11 +459,10 @@ $app->delete('/characters/{id}', function (Request $request, Response $response,
         return $response->withStatus(404);
     }
 
+    // Invalidate cache
+    $cache->delete('all_characters_with_relations');
+    $cache->delete('character_with_relations_' . $args['id']);
+
     $log->info('Deleted character with ID: ' . $args['id']);
     return $response->withStatus(204);
-    
-    if ($result) {
-        $cache->delete('all_characters'); // Invalidate the list cache
-        $cache->delete('character_' . $args['id']); // Remove the individual character cache
-    }
 });
