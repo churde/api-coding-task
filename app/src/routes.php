@@ -12,6 +12,7 @@ use App\Cache;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as SlimResponse;
 use App\Auth;
+use App\Middleware\RateLimitMiddleware;
 use DI\Container;
 
 // Add this near the top of your file, with the other OpenAPI annotations
@@ -128,6 +129,10 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($con
 
 // Add the auth middleware
 $app->add($authMiddleware);
+
+// Add rate limiting middleware
+$rateLimitMiddleware = new RateLimitMiddleware($container->get(Cache::class), 100, 3600);
+$app->add($rateLimitMiddleware);
 
 /**
  * @OA\Get(

@@ -1,9 +1,21 @@
 <?php
+
+use App\Middleware\RateLimitMiddleware;
 use Slim\Factory\AppFactory;
+use DI\Container;
+use App\Cache;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$app = AppFactory::create();
+// Create Container
+$container = new Container();
+
+// Set up dependencies
+$container->set(Cache::class, function() {
+    return new Cache();
+});
+
+$app = AppFactory::createFromContainer($container);
 
 // Add routing middleware
 $app->addRoutingMiddleware();
