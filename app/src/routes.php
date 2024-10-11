@@ -349,8 +349,6 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
     
     $data = $request->getParsedBody();
 
-    die(var_dump($data));
-
     $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
