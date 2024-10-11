@@ -10,8 +10,26 @@ use App\Cache;
 use Predis\Connection\ConnectionException;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as SlimResponse;
+use App\Auth;
 
 // Add this near the top of your file, with the other OpenAPI annotations
+
+/**
+ * @OA\Info(
+ *     title="LOTR API",
+ *     version="1.0.0",
+ *     description="API for Lord of the Rings characters with authentication"
+ * )
+ */
+
+/**
+ * @OA\SecurityScheme(
+ *     type="http",
+ *     scheme="bearer",
+ *     bearerFormat="JWT",
+ *     securityScheme="bearerAuth"
+ * )
+ */
 
 /**
  * @OA\Schema(
@@ -26,16 +44,27 @@ use Slim\Psr7\Response as SlimResponse;
  * )
  */
 
+/**
+ * @OA\Schema(
+ *     schema="Error",
+ *     @OA\Property(property="error", type="string")
+ * )
+ */
+
 // Create a log channel
 $log = new Logger('api');
 $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
 
 $cache = new Cache();
 
-// Define the API key middleware
-$apiKeyMiddleware = function (Request $request, RequestHandler $handler) {
-    $apiKey = $request->getHeaderLine('X-API-Key');
-    if ($apiKey !== 'your-secret-api-key') {
+// Create Auth instance
+$auth = new Auth($cache);
+
+// Update the API key middleware to use JWT
+$authMiddleware = function (Request $request, RequestHandler $handler) use ($auth) {
+    $token = $request->getHeaderLine('Authorization');
+    $token = str_replace('Bearer ', '', $token);
+    if (!$auth->validateToken($token)) {
         $response = new SlimResponse();
         $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
         return $response
@@ -48,32 +77,15 @@ $apiKeyMiddleware = function (Request $request, RequestHandler $handler) {
 // Create the Slim app
 $app = AppFactory::create();
 
-// Add the API key middleware
-$app->add($apiKeyMiddleware);
-
-/**
- * @OA\Info(
- *     title="LOTR API",
- *     version="1.0.0",
- *     description="API for Lord of the Rings characters"
- * )
- */
-
-/**
- * @OA\SecurityScheme(
- *     type="apiKey",
- *     in="header",
- *     securityScheme="X-API-Key",
- *     name="X-API-Key"
- * )
- */
+// Add the auth middleware
+$app->add($authMiddleware);
 
 /**
  * @OA\Get(
  *     path="/characters",
  *     summary="Get all characters",
  *     tags={"Characters"},
- *     security={{"X-API-Key": {}}},
+ *     security={{"bearerAuth": {}}},
  *     @OA\Response(
  *         response=200,
  *         description="Successful operation",
@@ -87,11 +99,22 @@ $app->add($apiKeyMiddleware);
  *     ),
  *     @OA\Response(
  *         response=401,
- *         description="Unauthorized"
+ *         description="Unauthorized",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
  *     )
  * )
  */
-$app->get('/characters', function (Request $request, Response $response) use ($log, $cache) {
+$app->get('/characters', function (Request $request, Response $response) use ($log, $cache, $auth) {
+    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
+    if (!$auth->hasPermission($token, 'read', 'character')) {
+        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+    }
+
     $cacheKey = 'all_characters';
     $cachedData = $cache->get($cacheKey);
     $cacheUsed = false;
@@ -131,7 +154,7 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
  *     path="/characters",
  *     summary="Create a new character",
  *     tags={"Characters"},
- *     security={{"X-API-Key": {}}},
+ *     security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(ref="#/components/schemas/Character")
@@ -143,11 +166,22 @@ $app->get('/characters', function (Request $request, Response $response) use ($l
  *     ),
  *     @OA\Response(
  *         response=401,
- *         description="Unauthorized"
+ *         description="Unauthorized",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
  *     )
  * )
  */
-$app->post('/characters', function (Request $request, Response $response) use ($log, $cache) {
+$app->post('/characters', function (Request $request, Response $response) use ($log, $cache, $auth) {
+    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
+    if (!$auth->hasPermission($token, 'create', 'character')) {
+        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+    }
+
     $log->info('Creating a new character');
     
     $data = $request->getParsedBody();
@@ -171,7 +205,7 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     path="/characters/{id}",
  *     summary="Get a character by ID",
  *     tags={"Characters"},
- *     security={{"X-API-Key": {}}},
+ *     security={{"bearerAuth": {}}},
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -195,11 +229,22 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     ),
  *     @OA\Response(
  *         response=401,
- *         description="Unauthorized"
+ *         description="Unauthorized",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
  *     )
  * )
  */
-$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache) {
+$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
+    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
+    if (!$auth->hasPermission($token, 'read', 'character')) {
+        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+    }
+
     $cacheKey = 'character_' . $args['id'];
     $cachedData = $cache->get($cacheKey);
     $cacheUsed = false;
@@ -247,7 +292,7 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     path="/characters/{id}",
  *     summary="Update a character",
  *     tags={"Characters"},
- *     security={{"X-API-Key": {}}},
+ *     security={{"bearerAuth": {}}},
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -269,11 +314,22 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     ),
  *     @OA\Response(
  *         response=401,
- *         description="Unauthorized"
+ *         description="Unauthorized",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
  *     )
  * )
  */
-$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache) {
+$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
+    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
+    if (!$auth->hasPermission($token, 'update', 'character')) {
+        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+    }
+
     $log->info('Updating character with ID: ' . $args['id']);
     
     $data = $request->getParsedBody();
@@ -305,7 +361,7 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     path="/characters/{id}",
  *     summary="Delete a character",
  *     tags={"Characters"},
- *     security={{"X-API-Key": {}}},
+ *     security={{"bearerAuth": {}}},
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -322,11 +378,22 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     ),
  *     @OA\Response(
  *         response=401,
- *         description="Unauthorized"
+ *         description="Unauthorized",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
  *     )
  * )
  */
-$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache) {
+$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($log, $cache, $auth) {
+    $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
+    if (!$auth->hasPermission($token, 'delete', 'character')) {
+        return $response->withStatus(403)->withJson(['error' => 'Forbidden']);
+    }
+
     $log->info('Deleting character with ID: ' . $args['id']);
     
     $pdo = new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
