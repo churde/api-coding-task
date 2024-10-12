@@ -13,6 +13,7 @@ use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as SlimResponse;
 use App\Services\Auth;
 use App\Middleware\RateLimitMiddleware;
+use App\Services\CharacterService;
 use DI\Container;
 
 // Add this near the top of your file, with the other OpenAPI annotations
@@ -101,11 +102,13 @@ $container->set('log', function () {
 
 $container->set('characterController', function ($c) {
     return new CharacterController(
-        $c->get('auth'),
-        $c->get('cache'),
-        $c->get('cacheConfig'),
-        $c->get('characterModel'),
-        $c->get('log')
+        new CharacterService(
+            $c->get('auth'),
+            $c->get('cache'),
+            $c->get('cacheConfig'),
+            $c->get('characterModel'),
+            $c->get('log')
+        )
     );
 });
 

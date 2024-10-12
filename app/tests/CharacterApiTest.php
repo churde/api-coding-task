@@ -115,7 +115,11 @@ class CharacterApiTest extends TestCase
         // Verify that the character has been deleted
         $response = $this->makeRequest('GET', "/characters/{$characterId}");
         $this->assertStringContainsString('404 Not Found', $response['status']);
-        $this->assertEmpty($response['body']); // Ensure the response body is empty for a 404
+        
+        // Check if the response body contains an error message
+        $data = json_decode($response['body'], true);
+        $this->assertArrayHasKey('error', $data);
+        $this->assertEquals('Character not found', $data['error']);
     }
 
     public function testUnauthorizedAccess()
