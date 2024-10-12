@@ -5,7 +5,7 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Models\Character;
-use App\Auth;
+use App\Services\Auth;
 use App\Cache;
 use Monolog\Logger;
 

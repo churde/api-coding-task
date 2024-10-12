@@ -11,7 +11,7 @@ use Monolog\Handler\StreamHandler;
 use App\Cache;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as SlimResponse;
-use App\Auth;
+use App\Services\Auth;
 use App\Middleware\RateLimitMiddleware;
 use DI\Container;
 
@@ -83,7 +83,10 @@ $container->set('permissionChecker', function ($c) {
 });
 
 $container->set('auth', function ($c) {
-    return new Auth($c->get('tokenManager'), $c->get('permissionChecker'));
+    return new Auth(
+        new \App\Services\AuthenticationService($c->get('tokenManager')),
+        new \App\Services\AuthorizationService($c->get('permissionChecker'))
+    );
 });
 
 $container->set('characterModel', function ($c) {

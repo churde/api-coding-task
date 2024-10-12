@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use DI\Container;
-use App\Auth;
+use App\Services\Auth;
 use App\Services\TokenManager;
 use App\Services\PermissionChecker;
 use App\Cache; // Use the correct cache class
