@@ -94,6 +94,15 @@ $container->set('characterModel', function ($c) {
     return new Character($c->get('db'));
 });
 
+$container->set('characterRepository', function ($c) {
+    return new \App\Repositories\CharacterRepository($c->get('characterModel'));
+});
+
+$container->set('characterRepositoryInterface', function ($c) {
+    return $c->get('characterRepository');
+});
+
+
 $container->set('log', function () {
     $log = new Logger('api');
     $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
@@ -106,7 +115,7 @@ $container->set('characterController', function ($c) {
             $c->get('auth'),
             $c->get('cache'),
             $c->get('cacheConfig'),
-            $c->get('characterModel'),
+            $c->get('characterRepositoryInterface'),
             $c->get('log')
         )
     );

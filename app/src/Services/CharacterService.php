@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Character;
+use App\Repositories\CharacterRepositoryInterface;
 use App\Services\Auth;
 use App\Cache;
 use Monolog\Logger;
@@ -12,15 +12,20 @@ class CharacterService
     private $auth;
     private $cache;
     private $cacheConfig;
-    private $characterModel;
+    private $characterRepository;
     private $log;
 
-    public function __construct(Auth $auth, Cache $cache, array $cacheConfig, Character $characterModel, Logger $log)
-    {
+    public function __construct(
+        Auth $auth,
+        Cache $cache,
+        array $cacheConfig,
+        CharacterRepositoryInterface $characterRepository,
+        Logger $log
+    ) {
         $this->auth = $auth;
         $this->cache = $cache;
         $this->cacheConfig = $cacheConfig;
-        $this->characterModel = $characterModel;
+        $this->characterRepository = $characterRepository;
         $this->log = $log;
     }
 
@@ -44,7 +49,7 @@ class CharacterService
             $cacheUsed = true;
         } else {
             $this->log->info('Fetching all characters with relations from database');
-            $result = $this->characterModel->getAllCharactersWithRelations($page, $perPage);
+            $result = $this->characterRepository->getAllWithRelations($page, $perPage);
 
             if ($this->cacheConfig['enable_cache']['get_all_characters']) {
                 $this->cache->set($cacheKey, $result, $this->cacheConfig['cache_ttl']);
@@ -76,7 +81,7 @@ class CharacterService
             $cacheUsed = true;
         } else {
             $this->log->info('Fetching character with relations, ID: ' . $characterId);
-            $character = $this->characterModel->getCharacterWithRelations($characterId);
+            $character = $this->characterRepository->getByIdWithRelations($characterId);
 
             if ($character && $this->cacheConfig['enable_cache']['get_character_by_id']) {
                 $this->cache->set($cacheKey, $character, $this->cacheConfig['cache_ttl']);
@@ -103,7 +108,7 @@ class CharacterService
         }
 
         $this->log->info('Creating a new character');
-        $newCharacter = $this->characterModel->createCharacter($data);
+        $newCharacter = $this->characterRepository->create($data);
         $this->log->info('Created character with ID: ' . $newCharacter['id']);
 
         return $newCharacter;
@@ -116,7 +121,7 @@ class CharacterService
         }
 
         $this->log->info('Updating character with ID: ' . $characterId);
-        $updatedCharacter = $this->characterModel->updateCharacter($characterId, $data);
+        $updatedCharacter = $this->characterRepository->update($characterId, $data);
 
         if (!$updatedCharacter) {
             throw new \Exception('Character not found', 404);
@@ -135,7 +140,7 @@ class CharacterService
         }
 
         $this->log->info('Deleting character with ID: ' . $characterId);
-        $result = $this->characterModel->deleteCharacter($characterId);
+        $result = $this->characterRepository->delete($characterId);
 
         if (!$result) {
             throw new \Exception('Character not found', 404);
