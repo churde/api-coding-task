@@ -1,59 +1,15 @@
 <?php
 
-namespace Tests;
+namespace Tests\Faction;
 
-use PHPUnit\Framework\TestCase;
-use App\Services\Auth;
-use App\Services\AuthenticationService;
-use App\Services\AuthorizationService;
+use Tests\UnitTestBase;
 
-class FactionApiViewerTest extends TestCase
+class FactionApiViewerTest extends UnitTestBase
 {
-    private string $baseUrl = 'http://localhost:8080/v1';
-    private string $viewerToken;
-    private string $adminToken;
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->viewerToken = $this->generateToken(3); // Viewer role (assuming 3 is the viewer role ID)
-        $this->adminToken = $this->generateToken(1);  // Admin role
-    }
-
-    private function generateToken($roleId)
-    {
-        $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
-        $tokenManager = new \App\Services\TokenManager($secretKey);
-        return $tokenManager->generateToken(1, $roleId);
-    }
-
-    private function makeRequest($method, $endpoint, $data = null, $useToken = true, $token = null)
-    {
-        $url = $this->baseUrl . $endpoint;
-        $options = [
-            'http' => [
-                'method' => $method,
-                'header' => [
-                    'Content-Type: application/json'
-                ],
-                'ignore_errors' => true
-            ]
-        ];
-
-        if ($useToken) {
-            $options['http']['header'][] = 'Authorization: Bearer ' . ($token ?: $this->viewerToken);
-        }
-
-        if ($data !== null) {
-            $options['http']['content'] = json_encode($data);
-        }
-
-        $context = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
-        return [
-            'status' => $http_response_header[0],
-            'body' => $result
-        ];
+        $this->token = $this->generateToken('viewer');
     }
 
     public function testGetAllFactions()
@@ -100,11 +56,12 @@ class FactionApiViewerTest extends TestCase
     public function testUpdateFactionNotAllowed()
     {
         // First, create faction with admin token
+        $adminToken = $this->generateToken('admin');
         $newFaction = [
             'faction_name' => 'Faction to Update',
             'description' => 'A test faction'
         ];
-        $createResponse = $this->makeRequest('POST', '/factions', $newFaction, true, $this->adminToken);
+        $createResponse = $this->makeRequest('POST', '/factions', $newFaction, true, $adminToken);
         $this->assertStringContainsString('201 Created', $createResponse['status']);
         $createdFaction = json_decode($createResponse['body'], true);
         $factionId = $createdFaction['id'];
@@ -123,18 +80,19 @@ class FactionApiViewerTest extends TestCase
         $this->assertEquals('Forbidden', $data['error']);
 
         // Clean up: Delete the faction using admin token
-        $deleteResponse = $this->makeRequest('DELETE', "/factions/{$factionId}", null, true, $this->adminToken);
+        $deleteResponse = $this->makeRequest('DELETE', "/factions/{$factionId}", null, true, $adminToken);
         $this->assertStringContainsString('204 No Content', $deleteResponse['status']);
     }
 
     public function testDeleteFactionNotAllowed()
     {
         // First, create faction with admin token
+        $adminToken = $this->generateToken('admin');
         $newFaction = [
             'faction_name' => 'Faction to Delete',
             'description' => 'A test faction'
         ];
-        $createResponse = $this->makeRequest('POST', '/factions', $newFaction, true, $this->adminToken);
+        $createResponse = $this->makeRequest('POST', '/factions', $newFaction, true, $adminToken);
         $this->assertStringContainsString('201 Created', $createResponse['status']);
         $createdFaction = json_decode($createResponse['body'], true);
         $factionId = $createdFaction['id'];
@@ -152,7 +110,7 @@ class FactionApiViewerTest extends TestCase
         $this->assertStringContainsString('200 OK', $getResponse['status']);
 
         // Clean up: Delete the faction using admin token
-        $adminDeleteResponse = $this->makeRequest('DELETE', "/factions/{$factionId}", null, true, $this->adminToken);
+        $adminDeleteResponse = $this->makeRequest('DELETE', "/factions/{$factionId}", null, true, $adminToken);
         $this->assertStringContainsString('204 No Content', $adminDeleteResponse['status']);
     }
 }
