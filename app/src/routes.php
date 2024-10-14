@@ -1,22 +1,20 @@
 <?php
 
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use App\Controllers\CharacterController;
-use App\Models\Character;
-use OpenApi\Annotations as OA;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-use App\Services\Cache;
-use Slim\Factory\AppFactory;
-use Slim\Psr7\Response as SlimResponse;
-use App\Services\Auth;
-use App\Middleware\RateLimitMiddleware;
-use App\Services\CharacterService;
-use DI\Container;
 use App\Interfaces\CacheInterface;
 use App\Interfaces\CharacterServiceInterface;
+use App\Middleware\RateLimitMiddleware;
+use App\Models\Character;
+use App\Services\Auth;
+use App\Services\Cache;
+use App\Services\Data\CharacterService;
+use DI\Container;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Factory\AppFactory;
+use Slim\Psr7\Response as SlimResponse;
 
 // Add this near the top of your file, with the other OpenAPI annotations
 
@@ -166,7 +164,7 @@ $container->set('equipmentValidator', function ($c) {
 });
 
 $container->set(\App\Interfaces\EquipmentServiceInterface::class, function ($c) {
-    return new \App\Services\EquipmentService(
+    return new \App\Services\Data\EquipmentService(
         $c->get('auth'),
         $c->get('equipmentRepositoryInterface'),
         $c->get('log'),
@@ -204,7 +202,7 @@ $container->set('factionValidator', function ($c) {
 });
 
 $container->set(\App\Interfaces\FactionServiceInterface::class, function ($c) {
-    return new \App\Services\FactionService(
+    return new \App\Services\Data\FactionService(
         $c->get('auth'),
         $c->get('factionRepositoryInterface'),
         $c->get('log'),

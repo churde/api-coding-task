@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Data;
 
-use App\Interfaces\FactionServiceInterface;
 use App\Interfaces\FactionRepositoryInterface;
+use App\Interfaces\FactionServiceInterface;
 use App\Services\Auth;
-use Monolog\Logger;
 use App\Validators\FactionValidator;
+use Monolog\Logger;
 
 class FactionService implements FactionServiceInterface
 {

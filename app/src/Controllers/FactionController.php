@@ -2,10 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Services\Data\FactionService;
+use App\Validators\FactionValidator;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use App\Services\FactionService;
-use App\Validators\FactionValidator;
 
 class FactionController
 {

@@ -2,10 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Services\Data\EquipmentService;
+use App\Validators\EquipmentValidator;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use App\Services\EquipmentService;
-use App\Validators\EquipmentValidator;
 
 class EquipmentController
 {

@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Data;
 
-use App\Interfaces\EquipmentServiceInterface;
 use App\Interfaces\EquipmentRepositoryInterface;
+use App\Interfaces\EquipmentServiceInterface;
 use App\Services\Auth;
-use Monolog\Logger;
 use App\Validators\EquipmentValidator;
+use Monolog\Logger;
 
 class EquipmentService implements EquipmentServiceInterface
 {

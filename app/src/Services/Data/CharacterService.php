@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Data;
 
-use App\Interfaces\CharacterServiceInterface;
 use App\Interfaces\CharacterRepositoryInterface;
+use App\Interfaces\CharacterServiceInterface;
 use App\Services\Auth;
-use Monolog\Logger;
 use App\Validators\CharacterValidator;
+use Monolog\Logger;
 
 class CharacterService implements CharacterServiceInterface
 {
