@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Interfaces\CharacterServiceInterface;
-use App\Repositories\CharacterRepositoryInterface;
+use App\Interfaces\CharacterRepositoryInterface;
 use App\Services\Auth;
 use Monolog\Logger;
 use App\Validators\CharacterValidator;

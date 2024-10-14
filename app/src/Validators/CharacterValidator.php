@@ -2,7 +2,7 @@
 
 namespace App\Validators;
 
-use App\Repositories\CharacterRepositoryInterface;
+use App\Interfaces\CharacterRepositoryInterface;
 
 class CharacterValidator
 {

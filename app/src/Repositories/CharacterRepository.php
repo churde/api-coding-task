@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Character;
 use App\Formatters\CharacterFormatter;
+use App\Interfaces\CharacterRepositoryInterface;
 use App\Services\Cache;
 use PDO;
 
