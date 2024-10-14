@@ -2,8 +2,9 @@
 namespace App\Services;
 
 use Predis\Client;
+use App\Interfaces\CacheInterface;
 
-class Cache
+class Cache implements CacheInterface
 {
     private $redis;
 

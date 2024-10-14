@@ -15,6 +15,7 @@ use App\Services\Auth;
 use App\Middleware\RateLimitMiddleware;
 use App\Services\CharacterService;
 use DI\Container;
+use App\Interfaces\CacheInterface;
 
 // Add this near the top of your file, with the other OpenAPI annotations
 
@@ -66,7 +67,7 @@ $container->set('db', function () {
     ]);
 });
 
-$container->set('cache', function () {
+$container->set(CacheInterface::class, function () {
     return new Cache();
 });
 
@@ -80,7 +81,7 @@ $container->set('tokenManager', function () {
 });
 
 $container->set('permissionChecker', function ($c) {
-    return new \App\Services\PermissionChecker($c->get('cache'), $c->get('db'));
+    return new \App\Services\PermissionChecker($c->get(CacheInterface::class), $c->get('db'));
 });
 
 $container->set('auth', function ($c) {
@@ -98,7 +99,7 @@ $container->set('characterRepository', function ($c) {
     return new \App\Repositories\CharacterRepository(
         $c->get('db'),
         $c->get('characterModel'),
-        $c->get('cache'),
+        $c->get(CacheInterface::class),
         $c->get('cacheConfig')
     );
 });
@@ -158,7 +159,7 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($con
 $app->add($authMiddleware);
 
 // Add rate limiting middleware
-$rateLimitMiddleware = new RateLimitMiddleware($container->get(Cache::class), 100, 3600);
+$rateLimitMiddleware = new RateLimitMiddleware($container->get(CacheInterface::class), 100, 3600);
 $app->add($rateLimitMiddleware);
 
 /**
