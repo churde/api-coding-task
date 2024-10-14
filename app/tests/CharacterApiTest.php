@@ -3,12 +3,28 @@
 namespace Tests;
 
 use PHPUnit\Framework\TestCase;
+use App\Services\Auth;
+use App\Services\AuthenticationService;
+use App\Services\AuthorizationService;
 
 class CharacterApiTest extends TestCase
 {
     private $baseUrl = 'http://localhost:8080';
-    private $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3Mjg2NDM2MzEsImV4cCI6MTcyOTAwMzYzMSwidXNlcklkIjoiMSIsInJvbGVJZCI6IjEifQ.WuezLAZHRFrDIltAdnuS6BFJfUKWn06nbOyosL2bd4w'; // Admin
-    // private $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3Mjg2NDA0NzUsImV4cCI6MTcyODY0NDA3NSwidXNlcklkIjoiMyIsInJvbGVJZCI6IjMifQ._o36t1HOOmG0eZa1yw2LBjYl7NhvE1oaad4Uq1W_zGA'; // Viewer
+    private $token;
+    private $auth;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->token = $this->generateAdminToken();
+    }
+
+    private function generateAdminToken()
+    {
+        $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
+        $tokenManager = new \App\Services\TokenManager($secretKey);
+        return $tokenManager->generateToken(1, 1);
+    }
 
     private function makeRequest($method, $endpoint, $data = null)
     {
