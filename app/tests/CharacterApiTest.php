@@ -26,19 +26,22 @@ class CharacterApiTest extends TestCase
         return $tokenManager->generateToken(1, 1);
     }
 
-    private function makeRequest($method, $endpoint, $data = null)
+    private function makeRequest($method, $endpoint, $data = null, $useToken = true)
     {
         $url = $this->baseUrl . $endpoint;
         $options = [
             'http' => [
                 'method' => $method,
                 'header' => [
-                    'Authorization: Bearer ' . $this->token,
                     'Content-Type: application/json'
                 ],
                 'ignore_errors' => true
             ]
         ];
+
+        if ($useToken) {
+            $options['http']['header'][] = 'Authorization: Bearer ' . $this->token;
+        }
 
         if ($data !== null) {
             $options['http']['content'] = json_encode($data);
@@ -140,16 +143,12 @@ class CharacterApiTest extends TestCase
 
     public function testUnauthorizedAccess()
     {
-        $options = [
-            'http' => [
-                'method' => 'GET'
-            ]
-        ];
-        $context = stream_context_create($options);
-        $url = $this->baseUrl . '/characters';
-        $result = @file_get_contents($url, false, $context);
-        $this->assertFalse($result);
-        $this->assertStringContainsString('401 Unauthorized', $http_response_header[0]);
+        $response = $this->makeRequest('GET', '/characters', null, false);
+        $this->assertStringContainsString('401 Unauthorized', $response['status']);
+        
+        $data = json_decode($response['body'], true);
+        $this->assertArrayHasKey('error', $data);
+        $this->assertEquals('Unauthorized: No token provided', $data['error']);
     }
 
     public function testInvalidToken()
