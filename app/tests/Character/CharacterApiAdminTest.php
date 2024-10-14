@@ -1,58 +1,15 @@
 <?php
 
-namespace Tests;
+namespace Tests\Character;
 
-use PHPUnit\Framework\TestCase;
-use App\Services\Auth;
-use App\Services\AuthenticationService;
-use App\Services\AuthorizationService;
+use Tests\UnitTestBase;
 
-class CharacterApiAdminTest extends TestCase
+class CharacterApiAdminTest extends UnitTestBase
 {
-    private $baseUrl = 'http://localhost:8080/v1'; // Updated to include /v1
-    private $token;
-    private $auth;
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->token = $this->generateAdminToken();
-    }
-
-    private function generateAdminToken()
-    {
-        $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
-        $tokenManager = new \App\Services\TokenManager($secretKey);
-        return $tokenManager->generateToken(1, 1);
-    }
-
-    private function makeRequest($method, $endpoint, $data = null, $useToken = true)
-    {
-        $url = $this->baseUrl . $endpoint;
-        $options = [
-            'http' => [
-                'method' => $method,
-                'header' => [
-                    'Content-Type: application/json'
-                ],
-                'ignore_errors' => true
-            ]
-        ];
-
-        if ($useToken) {
-            $options['http']['header'][] = 'Authorization: Bearer ' . $this->token;
-        }
-
-        if ($data !== null) {
-            $options['http']['content'] = json_encode($data);
-        }
-
-        $context = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
-        return [
-            'status' => $http_response_header[0],
-            'body' => $result
-        ];
+        $this->token = $this->generateToken('admin'); // Admin role ID
     }
 
     public function testGetAllCharacters()

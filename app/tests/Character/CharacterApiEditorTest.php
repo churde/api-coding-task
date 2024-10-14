@@ -1,59 +1,18 @@
 <?php
 
-namespace Tests;
+namespace Tests\Character;
 
-use PHPUnit\Framework\TestCase;
-use App\Services\Auth;
-use App\Services\AuthenticationService;
-use App\Services\AuthorizationService;
+use Tests\UnitTestBase;
 
-class CharacterApiEditorTest extends TestCase
+class CharacterApiEditorTest extends UnitTestBase
 {
-    private $baseUrl = 'http://localhost:8080/v1';
-    private $editorToken;
     private $adminToken;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->editorToken = $this->generateToken(2); // Editor role
-        $this->adminToken = $this->generateToken(1);  // Admin role
-    }
-
-    private function generateToken($roleId)
-    {
-        $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
-        $tokenManager = new \App\Services\TokenManager($secretKey);
-        return $tokenManager->generateToken(1, $roleId);
-    }
-
-    private function makeRequest($method, $endpoint, $data = null, $useToken = true, $token = null)
-    {
-        $url = $this->baseUrl . $endpoint;
-        $options = [
-            'http' => [
-                'method' => $method,
-                'header' => [
-                    'Content-Type: application/json'
-                ],
-                'ignore_errors' => true
-            ]
-        ];
-
-        if ($useToken) {
-            $options['http']['header'][] = 'Authorization: Bearer ' . ($token ?: $this->editorToken);
-        }
-
-        if ($data !== null) {
-            $options['http']['content'] = json_encode($data);
-        }
-
-        $context = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
-        return [
-            'status' => $http_response_header[0],
-            'body' => $result
-        ];
+        $this->token = $this->generateToken('editor');
+        $this->adminToken = $this->generateToken('admin');
     }
 
     public function testGetAllCharacters()
@@ -124,8 +83,6 @@ class CharacterApiEditorTest extends TestCase
 
         return $characterId;
     }
-
-    
 
     public function testDeleteCharacterNotAllowed()
     {
