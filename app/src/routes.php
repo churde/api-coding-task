@@ -181,6 +181,44 @@ $container->set('equipmentController', function ($c) {
     );
 });
 
+// Add these new container definitions for Faction
+$container->set('factionModel', function ($c) {
+    return new \App\Models\Faction();
+});
+
+$container->set('factionRepository', function ($c) {
+    return new \App\Repositories\FactionRepository(
+        $c->get('db'),
+        $c->get('factionModel'),
+        $c->get(CacheInterface::class),
+        $c->get('settings')['cache']
+    );
+});
+
+$container->set('factionRepositoryInterface', function ($c) {
+    return $c->get('factionRepository');
+});
+
+$container->set('factionValidator', function ($c) {
+    return new \App\Validators\FactionValidator($c->get('factionRepositoryInterface'));
+});
+
+$container->set(\App\Interfaces\FactionServiceInterface::class, function ($c) {
+    return new \App\Services\FactionService(
+        $c->get('auth'),
+        $c->get('factionRepositoryInterface'),
+        $c->get('log'),
+        $c->get('factionValidator')
+    );
+});
+
+$container->set('factionController', function ($c) {
+    return new \App\Controllers\FactionController(
+        $c->get(\App\Interfaces\FactionServiceInterface::class),
+        $c->get('factionValidator')
+    );
+});
+
 // Create the Slim app
 $app = AppFactory::createFromContainer($container);
 
@@ -257,6 +295,27 @@ $app->group('/v1', function ($group) use ($container) {
 
     $group->delete('/equipment/{id}', function (Request $request, Response $response, $args) use ($container) {
         return $container->get('equipmentController')->deleteEquipment($request, $response, $args);
+    });
+
+    // Faction routes
+    $group->get('/factions', function (Request $request, Response $response) use ($container) {
+        return $container->get('factionController')->getAllFactions($request, $response);
+    });
+
+    $group->post('/factions', function (Request $request, Response $response) use ($container) {
+        return $container->get('factionController')->createFaction($request, $response);
+    });
+
+    $group->get('/factions/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('factionController')->getFactionById($request, $response, $args);
+    });
+
+    $group->put('/factions/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('factionController')->updateFaction($request, $response, $args);
+    });
+
+    $group->delete('/factions/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('factionController')->deleteFaction($request, $response, $args);
     });
 })->add($authMiddleware)->add($rateLimitMiddleware);
 
@@ -631,6 +690,179 @@ $app->group('/v1', function ($group) use ($container) {
  *     @OA\Response(
  *         response=404,
  *         description="Equipment not found"
+ *     )
+ * )
+ */
+
+// Add OpenAPI annotations for faction routes
+/**
+ * @OA\Schema(
+ *     schema="Faction",
+ *     required={"faction_name", "description"},
+ *     @OA\Property(property="id", type="integer"),
+ *     @OA\Property(property="faction_name", type="string"),
+ *     @OA\Property(property="description", type="string")
+ * )
+ */
+
+/**
+ * @OA\Get(
+ *     path="/factions",
+ *     summary="Get all factions",
+ *     tags={"Factions"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="page",
+ *         in="query",
+ *         description="Page number",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="per_page",
+ *         in="query",
+ *         description="Number of items per page",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=10)
+ *     ),
+ *     @OA\Parameter(
+ *         name="search",
+ *         in="query",
+ *         description="Search term for filtering factions by name or description",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful operation",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Faction")),
+ *             @OA\Property(property="meta", type="object",
+ *                 @OA\Property(property="current_page", type="integer"),
+ *                 @OA\Property(property="per_page", type="integer"),
+ *                 @OA\Property(property="total_count", type="integer"),
+ *                 @OA\Property(property="total_pages", type="integer"),
+ *                 @OA\Property(property="cache_used", type="boolean")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Post(
+ *     path="/factions",
+ *     summary="Create a new faction",
+ *     tags={"Factions"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"faction_name", "description"},
+ *             @OA\Property(property="faction_name", type="string"),
+ *             @OA\Property(property="description", type="string")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=201,
+ *         description="Faction created successfully",
+ *         @OA\JsonContent(ref="#/components/schemas/Faction")
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input"
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Get(
+ *     path="/factions/{id}",
+ *     summary="Get a faction by ID",
+ *     tags={"Factions"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful operation",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="data", ref="#/components/schemas/Faction"),
+ *             @OA\Property(property="meta", type="object",
+ *                 @OA\Property(property="cache_used", type="boolean")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Faction not found"
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Put(
+ *     path="/factions/{id}",
+ *     summary="Update a faction",
+ *     tags={"Factions"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(ref="#/components/schemas/Faction")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Faction updated successfully",
+ *         @OA\JsonContent(ref="#/components/schemas/Faction")
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Faction not found"
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Delete(
+ *     path="/factions/{id}",
+ *     summary="Delete a faction",
+ *     tags={"Factions"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=204,
+ *         description="Faction deleted successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Faction not found"
  *     )
  * )
  */
