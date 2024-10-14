@@ -95,7 +95,7 @@ $container->set('characterModel', function ($c) {
 });
 
 $container->set('characterRepository', function ($c) {
-    return new \App\Repositories\CharacterRepository($c->get('characterModel'));
+    return new \App\Repositories\CharacterRepository($c->get('db'), $c->get('characterModel'));
 });
 
 $container->set('characterRepositoryInterface', function ($c) {
@@ -205,10 +205,16 @@ $app->get('/characters', function (Request $request, Response $response) use ($c
  *     path="/characters",
  *     summary="Create a new character",
  *     tags={"Characters"},
- *     security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
- *         @OA\JsonContent(ref="#/components/schemas/Character")
+ *         @OA\JsonContent(
+ *             required={"name", "birth_date", "kingdom"},
+ *             @OA\Property(property="name", type="string"),
+ *             @OA\Property(property="birth_date", type="string", format="date"),
+ *             @OA\Property(property="kingdom", type="string"),
+ *             @OA\Property(property="equipment_id", type="integer"),
+ *             @OA\Property(property="faction_id", type="integer")
+ *         )
  *     ),
  *     @OA\Response(
  *         response=201,
@@ -216,14 +222,8 @@ $app->get('/characters', function (Request $request, Response $response) use ($c
  *         @OA\JsonContent(ref="#/components/schemas/Character")
  *     ),
  *     @OA\Response(
- *         response=401,
- *         description="Unauthorized",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
- *     ),
- *     @OA\Response(
- *         response=403,
- *         description="Forbidden",
- *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *         response=400,
+ *         description="Invalid input"
  *     )
  * )
  */

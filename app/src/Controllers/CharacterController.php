@@ -5,6 +5,8 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Services\CharacterService;
+use OpenApi\Annotations as OA;
+use InvalidArgumentException;
 
 class CharacterController
 {
@@ -27,10 +29,7 @@ class CharacterController
             $response->getBody()->write(json_encode($result));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus($e->getCode());
+            return $this->handleException($response, $e);
         }
     }
 
@@ -44,10 +43,7 @@ class CharacterController
             $response->getBody()->write(json_encode($result));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus($e->getCode());
+            return $this->handleException($response, $e);
         }
     }
 
@@ -61,10 +57,7 @@ class CharacterController
             $response->getBody()->write(json_encode($newCharacter));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
         } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus($e->getCode());
+            return $this->handleException($response, $e);
         }
     }
 
@@ -79,10 +72,7 @@ class CharacterController
             $response->getBody()->write(json_encode($updatedCharacter));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus($e->getCode());
+            return $this->handleException($response, $e);
         }
     }
 
@@ -95,10 +85,53 @@ class CharacterController
             $this->characterService->deleteCharacter($token, $characterId);
             return $response->withStatus(204);
         } catch (\Exception $e) {
-            $response->getBody()->write(json_encode(['error' => $e->getMessage()]));
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus($e->getCode());
+            return $this->handleException($response, $e);
         }
+    }
+
+    private function handleException(Response $response, \Exception $e): Response
+    {
+        $statusCode = $this->getHttpStatusCode($e);
+        $errorMessage = $this->getErrorMessage($e);
+
+        $response->getBody()->write(json_encode(['error' => $errorMessage]));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus($statusCode);
+    }
+
+    private function getHttpStatusCode(\Exception $e): int
+    {
+        if ($e instanceof \PDOException) {
+            // Map database error codes to HTTP status codes
+            switch ($e->getCode()) {
+                case '23000': // Integrity constraint violation
+                    return 400; // Bad Request
+                case '42S02': // Base table or view not found
+                    return 404; // Not Found
+                default:
+                    return 500; // Internal Server Error
+            }
+        }
+
+        // For custom exceptions, you can add more specific mappings
+        // For example:
+        // if ($e instanceof \App\Exceptions\UnauthorizedException) {
+        //     return 401;
+        // }
+
+        // Default to Internal Server Error for unhandled exceptions
+        return 500;
+    }
+
+    private function getErrorMessage(\Exception $e): string
+    {
+        // In production, you might want to return generic error messages
+        // instead of exposing internal error details
+        if (getenv('APP_ENV') === 'production') {
+            return 'An error occurred while processing your request.';
+        }
+
+        return $e->getMessage();
     }
 }
