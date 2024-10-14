@@ -11,4 +11,5 @@ interface CharacterRepositoryInterface
     public function delete(int $id): bool;
     public function equipmentExists(int $equipmentId): bool;
     public function factionExists(int $factionId): bool;
+    public function searchCharacters(string $searchTerm, int $page = 1, int $perPage = 10): array;
 }

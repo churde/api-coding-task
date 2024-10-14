@@ -185,6 +185,13 @@ $app->add($rateLimitMiddleware);
  *         required=false,
  *         @OA\Schema(type="integer", default=10)
  *     ),
+ *     @OA\Parameter(
+ *         name="search",
+ *         in="query",
+ *         description="Search term for filtering characters by name, kingdom, equipment name, or faction name",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
  *     @OA\Response(
  *         response=200,
  *         description="Successful operation",

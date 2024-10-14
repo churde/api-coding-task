@@ -6,9 +6,6 @@ use App\Models\Character;
 use App\Formatters\CharacterFormatter;
 use App\Services\Cache;
 use PDO;
-use InvalidArgumentException;
-use App\Models\Equipment;
-use App\Models\Faction;
 
 class CharacterRepository implements CharacterRepositoryInterface
 {
@@ -184,5 +181,56 @@ class CharacterRepository implements CharacterRepositoryInterface
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM factions WHERE id = :id");
         $stmt->execute(['id' => $factionId]);
         return (int) $stmt->fetchColumn() > 0;
+    }
+
+    public function searchCharacters(string $searchTerm, int $page = 1, int $perPage = 10): array
+    {
+        $offset = ($page - 1) * $perPage;
+
+        $query = "SELECT c.*, 
+                         e.id as equipment_id, e.name as equipment_name, e.type as equipment_type, e.made_by as equipment_made_by,
+                         f.id as faction_id, f.faction_name, f.description as faction_description
+                  FROM characters c
+                  LEFT JOIN equipments e ON c.equipment_id = e.id
+                  LEFT JOIN factions f ON c.faction_id = f.id
+                  WHERE c.name LIKE :searchTerm 
+                     OR c.kingdom LIKE :searchTerm
+                     OR e.name LIKE :searchTerm
+                     OR f.faction_name LIKE :searchTerm
+                  LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->bindValue(':searchTerm', "%$searchTerm%", \PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $formattedResults = array_map([CharacterFormatter::class, 'formatWithRelations'], $results);
+
+        $countQuery = "SELECT COUNT(*) FROM characters c
+                       LEFT JOIN equipments e ON c.equipment_id = e.id
+                       LEFT JOIN factions f ON c.faction_id = f.id
+                       WHERE c.name LIKE :searchTerm 
+                          OR c.kingdom LIKE :searchTerm
+                          OR e.name LIKE :searchTerm
+                          OR f.faction_name LIKE :searchTerm";
+        $countStmt = $this->db->prepare($countQuery);
+        $countStmt->bindValue(':searchTerm', "%$searchTerm%", \PDO::PARAM_STR);
+        $countStmt->execute();
+        $totalCount = $countStmt->fetchColumn();
+
+        return [
+            'data' => $formattedResults,
+            'meta' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_count' => $totalCount,
+                'total_pages' => ceil($totalCount / $perPage),
+                'cache_used' => false
+            ]
+        ];
+    
     }
 }

@@ -5,15 +5,16 @@ namespace App\Interfaces;
 interface CharacterServiceInterface
 {
     /**
-     * Get all characters with pagination
+     * Get all characters with pagination and optional search
      *
      * @param string $token
      * @param int $page
      * @param int $perPage
+     * @param string|null $searchTerm
      * @return array
      * @throws \Exception
      */
-    public function getAllCharacters(string $token, int $page, int $perPage): array;
+    public function getAllCharacters(string $token, int $page = 1, int $perPage = 10, ?string $searchTerm = null): array;
 
     /**
      * Get a character by ID

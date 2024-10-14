@@ -24,9 +24,10 @@ class CharacterController
         $queryParams = $request->getQueryParams();
         $page = isset($queryParams['page']) ? (int)$queryParams['page'] : 1;
         $perPage = isset($queryParams['per_page']) ? (int)$queryParams['per_page'] : 10;
+        $searchTerm = isset($queryParams['search']) ? $queryParams['search'] : null;
 
         try {
-            $result = $this->characterService->getAllCharacters($token, $page, $perPage);
+            $result = $this->characterService->getAllCharacters($token, $page, $perPage, $searchTerm);
             $response->getBody()->write(json_encode($result));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\Exception $e) {

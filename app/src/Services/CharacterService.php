@@ -27,16 +27,19 @@ class CharacterService implements CharacterServiceInterface
         $this->characterValidator = $characterValidator;
     }
 
-    public function getAllCharacters(string $token, int $page, int $perPage): array
+    public function getAllCharacters(string $token, int $page = 1, int $perPage = 10, ?string $searchTerm = null): array
     {
         if (!$this->auth->hasPermission($token, 'read')) {
             throw new \Exception('Forbidden', 403);
         }
 
-        $this->log->info('Fetching all characters with relations');
-        $result = $this->characterRepository->getAllWithRelations($page, $perPage);
+        $this->log->info('Fetching all characters, Page: ' . $page . ', PerPage: ' . $perPage . ', SearchTerm: ' . ($searchTerm ?? 'None'));
 
-        return $result;
+        if ($searchTerm) {
+            return $this->characterRepository->searchCharacters($searchTerm, $page, $perPage);
+        }
+        
+        return $this->characterRepository->getAllWithRelations($page, $perPage);
     }
 
     public function getCharacterById(string $token, int $characterId): array
