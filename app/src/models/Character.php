@@ -24,9 +24,9 @@ class Character {
     {
         $character = new self();
         $character->id = $data['id'] ?? null;
-        $character->name = $data['name'];
-        $character->birthDate = $data['birth_date'];
-        $character->kingdom = $data['kingdom'];
+        $character->name = $data['name'] ?? null;
+        $character->birthDate = $data['birth_date'] ?? null;
+        $character->kingdom = $data['kingdom'] ?? null;
         $character->equipmentId = $data['equipment_id'] ?? null;
         $character->factionId = $data['faction_id'] ?? null;
         return $character;

@@ -6,6 +6,7 @@ use App\Repositories\CharacterRepositoryInterface;
 use App\Services\Auth;
 use App\Cache;
 use Monolog\Logger;
+use App\Validators\CharacterValidator;
 
 class CharacterService
 {
@@ -14,19 +15,22 @@ class CharacterService
     private $cacheConfig;
     private $characterRepository;
     private $log;
+    private $characterValidator;
 
     public function __construct(
         Auth $auth,
         Cache $cache,
         array $cacheConfig,
         CharacterRepositoryInterface $characterRepository,
-        Logger $log
+        Logger $log,
+        CharacterValidator $characterValidator
     ) {
         $this->auth = $auth;
         $this->cache = $cache;
         $this->cacheConfig = $cacheConfig;
         $this->characterRepository = $characterRepository;
         $this->log = $log;
+        $this->characterValidator = $characterValidator;
     }
 
     public function getAllCharacters(string $token, int $page, int $perPage): array
@@ -101,23 +105,36 @@ class CharacterService
         ];
     }
 
-    public function createCharacter(string $token, array $data): array
+    public function createCharacter(array $data): array
     {
-        if (!$this->auth->hasPermission($token, 'create', 'character')) {
-            throw new \Exception('Forbidden', 403);
+        // Validate foreign keys
+        $foreignKeyErrors = $this->characterValidator->validateForeignKeys($data);
+
+        if (!empty($foreignKeyErrors)) {
+            return ['errors' => $foreignKeyErrors];
         }
 
-        $this->log->info('Creating a new character');
-        $newCharacter = $this->characterRepository->create($data);
-        $this->log->info('Created character with ID: ' . $newCharacter['id']);
+        // If foreign key validation passes, proceed with character creation
+        $character = $this->characterRepository->create($data);
 
-        return $newCharacter;
+        if (!$character) {
+            return ['errors' => ['Failed to create character']];
+        }
+
+        return $character;
     }
 
     public function updateCharacter(string $token, int $characterId, array $data): array
     {
         if (!$this->auth->hasPermission($token, 'update', 'character')) {
             throw new \Exception('Forbidden', 403);
+        }
+
+        // Validate foreign keys only for the fields that are being updated
+        $foreignKeyErrors = $this->characterValidator->validateForeignKeys(array_intersect_key($data, array_flip(['equipment_id', 'faction_id'])));
+
+        if (!empty($foreignKeyErrors)) {
+            throw new \Exception('Invalid foreign keys: ' . implode(', ', $foreignKeyErrors), 400);
         }
 
         $this->log->info('Updating character with ID: ' . $characterId);
@@ -143,6 +160,7 @@ class CharacterService
         $result = $this->characterRepository->delete($characterId);
 
         if (!$result) {
+            $this->log->warning('Character not found for deletion, ID: ' . $characterId);
             throw new \Exception('Character not found', 404);
         }
 

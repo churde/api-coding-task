@@ -109,6 +109,10 @@ $container->set('log', function () {
     return $log;
 });
 
+$container->set('characterValidator', function ($c) {
+    return new \App\Validators\CharacterValidator($c->get('characterRepositoryInterface'));
+});
+
 $container->set('characterController', function ($c) {
     return new CharacterController(
         new CharacterService(
@@ -116,8 +120,10 @@ $container->set('characterController', function ($c) {
             $c->get('cache'),
             $c->get('cacheConfig'),
             $c->get('characterRepositoryInterface'),
-            $c->get('log')
-        )
+            $c->get('log'),
+            $c->get('characterValidator')
+        ),
+        $c->get('characterValidator')
     );
 });
 
@@ -205,6 +211,7 @@ $app->get('/characters', function (Request $request, Response $response) use ($c
  *     path="/characters",
  *     summary="Create a new character",
  *     tags={"Characters"},
+ *     security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(

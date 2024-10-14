@@ -5,6 +5,8 @@ namespace App\Repositories;
 use App\Models\Character;
 use PDO;
 use InvalidArgumentException;
+use App\Models\Equipment;
+use App\Models\Faction;
 
 class CharacterRepository implements CharacterRepositoryInterface
 {
@@ -70,25 +72,45 @@ class CharacterRepository implements CharacterRepositoryInterface
 
     public function create(array $data): array
     {
+
         $character = $this->characterModel::fromArray($data);
         $stmt = $this->db->prepare("INSERT INTO characters (name, birth_date, kingdom, equipment_id, faction_id) VALUES (:name, :birth_date, :kingdom, :equipment_id, :faction_id)");
-        $stmt->execute($character->toArray());
+        $stmt->execute(array_diff_key($character->toArray(), ['id' => null]));
         $id = $this->db->lastInsertId();
         return $this->getByIdWithRelations($id);
     }
 
     public function update(int $id, array $data): ?array
     {
-        $character = $this->characterModel::fromArray(array_merge(['id' => $id], $data));
-        $stmt = $this->db->prepare("UPDATE characters SET name = :name, birth_date = :birth_date, kingdom = :kingdom, equipment_id = :equipment_id, faction_id = :faction_id WHERE id = :id");
-        $result = $stmt->execute($character->toArray());
+        $allowedFields = ['name', 'birth_date', 'kingdom', 'equipment_id', 'faction_id'];
+        $updateData = [];
+        $updateFields = [];
+
+        foreach ($allowedFields as $field) {
+            if (isset($data[$field])) {
+                $updateData[$field] = $data[$field];
+                $updateFields[] = "$field = :$field";
+            }
+        }
+
+        if (empty($updateData)) {
+            return $this->getByIdWithRelations($id);
+        }
+
+        $updateQuery = "UPDATE characters SET " . implode(', ', $updateFields) . " WHERE id = :id";
+        $stmt = $this->db->prepare($updateQuery);
+        
+        $updateData['id'] = $id;
+        $result = $stmt->execute($updateData);
+
         return $result ? $this->getByIdWithRelations($id) : null;
     }
 
     public function delete(int $id): bool
     {
         $stmt = $this->db->prepare("DELETE FROM characters WHERE id = :id");
-        return $stmt->execute(['id' => $id]);
+        $stmt->execute(['id' => $id]);
+        return $stmt->rowCount() > 0;
     }
 
     private function formatCharacterWithRelations($data): array
@@ -110,5 +132,19 @@ class CharacterRepository implements CharacterRepositoryInterface
                 'description' => $data['faction_description']
             ]
         ];
+    }
+
+    public function equipmentExists(int $equipmentId): bool
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM equipments WHERE id = :id");
+        $stmt->execute(['id' => $equipmentId]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    public function factionExists(int $factionId): bool
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM factions WHERE id = :id");
+        $stmt->execute(['id' => $factionId]);
+        return (int) $stmt->fetchColumn() > 0;
     }
 }

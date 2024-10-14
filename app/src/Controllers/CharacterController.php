@@ -5,16 +5,17 @@ namespace App\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Services\CharacterService;
-use OpenApi\Annotations as OA;
-use InvalidArgumentException;
+use App\Validators\CharacterValidator;
 
 class CharacterController
 {
     private $characterService;
+    private $characterValidator;
 
-    public function __construct(CharacterService $characterService)
+    public function __construct(CharacterService $characterService, CharacterValidator $characterValidator)
     {
         $this->characterService = $characterService;
+        $this->characterValidator = $characterValidator;
     }
 
     public function getAllCharacters(Request $request, Response $response): Response
@@ -49,16 +50,32 @@ class CharacterController
 
     public function createCharacter(Request $request, Response $response): Response
     {
-        $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
         $data = $request->getParsedBody();
 
-        try {
-            $newCharacter = $this->characterService->createCharacter($token, $data);
-            $response->getBody()->write(json_encode($newCharacter));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
-        } catch (\Exception $e) {
-            return $this->handleException($response, $e);
+        // Perform basic input validation for create
+        $validationErrors = $this->characterValidator->validateCreateInput($data);
+
+        if (!empty($validationErrors)) {
+            $response->getBody()->write(json_encode(['errors' => $validationErrors]));
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(400);
         }
+
+        // If basic validation passes, proceed with character creation
+        $result = $this->characterService->createCharacter($data);
+
+        if (isset($result['errors'])) {
+            $response->getBody()->write(json_encode($result));
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(400);
+        }
+
+        $response->getBody()->write(json_encode($result));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(201);
     }
 
     public function updateCharacter(Request $request, Response $response, array $args): Response
@@ -66,6 +83,16 @@ class CharacterController
         $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
         $characterId = $args['id'];
         $data = $request->getParsedBody();
+
+        // Perform basic input validation for update
+        $validationErrors = $this->characterValidator->validateUpdateInput($data);
+
+        if (!empty($validationErrors)) {
+            $response->getBody()->write(json_encode(['errors' => $validationErrors]));
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withStatus(400);
+        }
 
         try {
             $updatedCharacter = $this->characterService->updateCharacter($token, $characterId, $data);
@@ -115,10 +142,9 @@ class CharacterController
         }
 
         // For custom exceptions, you can add more specific mappings
-        // For example:
-        // if ($e instanceof \App\Exceptions\UnauthorizedException) {
-        //     return 401;
-        // }
+        if ($e->getCode() === 404) {
+            return 404; // Not Found
+        }
 
         // Default to Internal Server Error for unhandled exceptions
         return 500;
