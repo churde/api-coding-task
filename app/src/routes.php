@@ -60,6 +60,10 @@ use App\Interfaces\CharacterServiceInterface;
 // Create Container
 $container = new Container();
 
+// Load settings
+$settings = require __DIR__ . '/../config/app.php';
+$container->set('settings', $settings);
+
 // Set up container definitions
 $container->set('db', function () {
     return new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
@@ -72,9 +76,6 @@ $container->set(CacheInterface::class, function () {
     return new Cache();
 });
 
-$container->set('cacheConfig', function () {
-    return require __DIR__ . '/../config/cache_config.php';
-});
 
 $container->set('tokenManager', function () {
     $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
@@ -92,6 +93,11 @@ $container->set('auth', function ($c) {
     );
 });
 
+$container->set('settings', function () {
+    return require __DIR__ . '/../config/app.php';
+});
+
+
 $container->set('characterModel', function ($c) {
     return new Character($c->get('db'));
 });
@@ -101,7 +107,7 @@ $container->set('characterRepository', function ($c) {
         $c->get('db'),
         $c->get('characterModel'),
         $c->get(CacheInterface::class),
-        $c->get('cacheConfig')
+        $c->get('settings')['cache']
     );
 });
 
@@ -162,7 +168,18 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($con
 $app->add($authMiddleware);
 
 // Add rate limiting middleware
-$rateLimitMiddleware = new RateLimitMiddleware($container->get(CacheInterface::class), 100, 3600);
+// Define rate limiting middleware
+$rateLimitMiddleware = function ($request, $handler) use ($container) {
+    $cache = $container->get(CacheInterface::class);
+    $settings = $container->get('settings');
+    $rateLimitMiddleware = new RateLimitMiddleware(
+        $cache,
+        $settings['rate_limit']
+    );
+    return $rateLimitMiddleware($request, $handler);
+};
+
+// Add rate limiting middleware
 $app->add($rateLimitMiddleware);
 
 /**

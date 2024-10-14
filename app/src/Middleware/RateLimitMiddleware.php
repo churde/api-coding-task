@@ -12,11 +12,11 @@ class RateLimitMiddleware
     private $limit;
     private $window;
 
-    public function __construct(Cache $cache, int $limit = 100, int $window = 3600)
+    public function __construct(Cache $cache, array $config)
     {
         $this->cache = $cache;
-        $this->limit = $limit;
-        $this->window = $window;
+        $this->limit = $config['requests'];
+        $this->window = $config['per_minutes'] * 60; // Convert minutes to seconds
     }
 
     public function __invoke(Request $request, RequestHandler $handler): Response

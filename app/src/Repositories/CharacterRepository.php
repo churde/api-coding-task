@@ -25,6 +25,7 @@ class CharacterRepository implements CharacterRepositoryInterface
 
     public function getAllWithRelations(int $page, int $perPage): array
     {
+
         $cacheKey = "all_characters_page_{$page}_perPage_{$perPage}";
         $cacheUsed = false;
 
@@ -70,7 +71,7 @@ class CharacterRepository implements CharacterRepositoryInterface
         ];
 
         if ($this->cacheConfig['enable_cache']['get_all_characters']) {
-            $this->cache->set($cacheKey, $result, $this->cacheConfig['cache_ttl']);
+            $this->cache->set($cacheKey, $result, $this->cacheConfig['ttl']);
         }
 
         return $result;
@@ -104,7 +105,7 @@ class CharacterRepository implements CharacterRepositoryInterface
         if ($result) {
             $formattedResult = CharacterFormatter::formatWithRelations($result);
             if ($this->cacheConfig['enable_cache']['get_character_by_id']) {
-                $this->cache->set($cacheKey, $formattedResult, $this->cacheConfig['cache_ttl']);
+                $this->cache->set($cacheKey, $formattedResult, $this->cacheConfig['ttl']);
             }
             return ['data' => $formattedResult, 'meta' => ['cache_used' => $cacheUsed]];
         }
