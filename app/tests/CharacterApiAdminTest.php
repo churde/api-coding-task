@@ -7,7 +7,7 @@ use App\Services\Auth;
 use App\Services\AuthenticationService;
 use App\Services\AuthorizationService;
 
-class CharacterApiTest extends TestCase
+class CharacterApiAdminTest extends TestCase
 {
     private $baseUrl = 'http://localhost:8080/v1'; // Updated to include /v1
     private $token;
