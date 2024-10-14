@@ -21,10 +21,17 @@ class RateLimitMiddleware
 
     public function __invoke(Request $request, RequestHandler $handler): Response
     {
+        $token = $request->getHeaderLine('Authorization');
+        $token = str_replace('Bearer ', '', $token);
 
-        $ipAddress = $request->getServerParams()['REMOTE_ADDR'];
+        if (empty($token)) {
+            $responseFactory = new ResponseFactory();
+            $response = $responseFactory->createResponse(401);
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized: No token provided']));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
 
-        $key = "rate_limit:{$ipAddress}";
+        $key = "rate_limit:{$token}";
 
         $current = $this->cache->get($key);
 
