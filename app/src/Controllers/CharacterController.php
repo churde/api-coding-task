@@ -51,6 +51,7 @@ class CharacterController
 
     public function createCharacter(Request $request, Response $response): Response
     {
+        $token = str_replace('Bearer ', '', $request->getHeaderLine('Authorization'));
         $data = $request->getParsedBody();
 
         // Perform basic input validation for create
@@ -63,20 +64,15 @@ class CharacterController
                 ->withStatus(400);
         }
 
-        // If basic validation passes, proceed with character creation
-        $result = $this->characterService->createCharacter($data);
-
-        if (isset($result['errors'])) {
+        try {
+            $result = $this->characterService->createCharacter($token, $data);
             $response->getBody()->write(json_encode($result));
             return $response
                 ->withHeader('Content-Type', 'application/json')
-                ->withStatus(400);
+                ->withStatus(201);
+        } catch (\Exception $e) {
+            return $this->handleException($response, $e);
         }
-
-        $response->getBody()->write(json_encode($result));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(201);
     }
 
     public function updateCharacter(Request $request, Response $response, array $args): Response
@@ -130,25 +126,24 @@ class CharacterController
 
     private function getHttpStatusCode(\Exception $e): int
     {
-        if ($e instanceof \PDOException) {
-            // Map database error codes to HTTP status codes
-            switch ($e->getCode()) {
-                case '23000': // Integrity constraint violation
-                    return 400; // Bad Request
-                case '42S02': // Base table or view not found
-                    return 404; // Not Found
-                default:
-                    return 500; // Internal Server Error
-            }
-        }
+        $code = $e->getCode();
 
-        // For custom exceptions, you can add more specific mappings
-        if ($e->getCode() === 404) {
-            return 404; // Not Found
+        switch ($code) {
+            case 400:
+                return 400; // Bad Request
+            case 401:
+                return 401; // Unauthorized
+            case 403:
+                return 403; // Forbidden
+            case 404:
+                return 404; // Not Found
+            case 409:
+                return 409; // Conflict
+            case 422:
+                return 422; // Unprocessable Entity
+            default:
+                return 500; // Internal Server Error
         }
-
-        // Default to Internal Server Error for unhandled exceptions
-        return 500;
     }
 
     private function getErrorMessage(\Exception $e): string

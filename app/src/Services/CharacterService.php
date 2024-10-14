@@ -58,8 +58,17 @@ class CharacterService implements CharacterServiceInterface
         return $character;
     }
 
-    public function createCharacter(array $data): array
+    public function createCharacter(string $token, array $data): array
     {
+        $this->log->info('Attempting to create character with token: ' . substr($token, 0, 10) . '...');
+        
+        if (!$this->auth->hasPermission($token, 'create')) {
+            $this->log->warning('Permission denied: User lacks "create" permission for character creation');
+            throw new \Exception('Forbidden', 403);
+        }
+        
+        $this->log->info('Permission check passed. Proceeding with character creation.');
+        
         // Validate foreign keys
         $foreignKeyErrors = $this->characterValidator->validateForeignKeys($data);
 

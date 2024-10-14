@@ -32,7 +32,7 @@ interface CharacterServiceInterface
      * @param array $data
      * @return array
      */
-    public function createCharacter(array $data): array;
+    public function createCharacter(string $token, array $data): array;
 
     /**
      * Update an existing character
