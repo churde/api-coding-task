@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Character;
 use App\Formatters\CharacterFormatter;
+use App\Services\Cache;
 use PDO;
 use InvalidArgumentException;
 use App\Models\Equipment;
@@ -13,15 +14,31 @@ class CharacterRepository implements CharacterRepositoryInterface
 {
     private $db;
     private $characterModel;
+    private $cache;
+    private $cacheConfig;
 
-    public function __construct(PDO $db, Character $characterModel)
+    public function __construct(PDO $db, Character $characterModel, Cache $cache, array $cacheConfig)
     {
         $this->db = $db;
         $this->characterModel = $characterModel;
+        $this->cache = $cache;
+        $this->cacheConfig = $cacheConfig;
     }
 
     public function getAllWithRelations(int $page, int $perPage): array
     {
+        $cacheKey = "all_characters_page_{$page}_perPage_{$perPage}";
+        $cacheUsed = false;
+
+        if ($this->cacheConfig['enable_cache']['get_all_characters']) {
+            $cachedCharacters = $this->cache->get($cacheKey);
+            if ($cachedCharacters) {
+                $cacheUsed = true;
+                $cachedCharacters['meta']['cache_used'] = true;
+                return $cachedCharacters;
+            }
+        }
+
         $offset = ($page - 1) * $perPage;
         $query = "SELECT c.*, 
                          e.id as equipment_id, e.name as equipment_name, e.type as equipment_type, e.made_by as equipment_made_by,
@@ -43,19 +60,37 @@ class CharacterRepository implements CharacterRepositoryInterface
         $countStmt = $this->db->query($countQuery);
         $totalCount = $countStmt->fetchColumn();
 
-        return [
+        $result = [
             'data' => $formattedResults,
             'meta' => [
                 'current_page' => $page,
                 'per_page' => $perPage,
                 'total_count' => $totalCount,
-                'total_pages' => ceil($totalCount / $perPage)
+                'total_pages' => ceil($totalCount / $perPage),
+                'cache_used' => $cacheUsed
             ]
         ];
+
+        if ($this->cacheConfig['enable_cache']['get_all_characters']) {
+            $this->cache->set($cacheKey, $result, $this->cacheConfig['cache_ttl']);
+        }
+
+        return $result;
     }
 
     public function getByIdWithRelations(int $id): ?array
     {
+        $cacheKey = "character:{$id}";
+        $cacheUsed = false;
+
+        if ($this->cacheConfig['enable_cache']['get_character_by_id']) {
+            $cachedCharacter = $this->cache->get($cacheKey);
+            if ($cachedCharacter) {
+                $cacheUsed = true;
+                return ['data' => $cachedCharacter, 'meta' => ['cache_used' => true]];
+            }
+        }
+
         $query = "SELECT c.*, 
                          e.id as equipment_id, e.name as equipment_name, e.type as equipment_type, e.made_by as equipment_made_by,
                          f.id as faction_id, f.faction_name, f.description as faction_description
@@ -68,17 +103,25 @@ class CharacterRepository implements CharacterRepositoryInterface
         $stmt->execute([$id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $result ? CharacterFormatter::formatWithRelations($result) : null;
+        if ($result) {
+            $formattedResult = CharacterFormatter::formatWithRelations($result);
+            if ($this->cacheConfig['enable_cache']['get_character_by_id']) {
+                $this->cache->set($cacheKey, $formattedResult, $this->cacheConfig['cache_ttl']);
+            }
+            return ['data' => $formattedResult, 'meta' => ['cache_used' => $cacheUsed]];
+        }
+
+        return null;
     }
 
     public function create(array $data): array
     {
-
         $character = $this->characterModel::fromArray($data);
         $stmt = $this->db->prepare("INSERT INTO characters (name, birth_date, kingdom, equipment_id, faction_id) VALUES (:name, :birth_date, :kingdom, :equipment_id, :faction_id)");
         $stmt->execute(array_diff_key($character->toArray(), ['id' => null]));
         $id = $this->db->lastInsertId();
-        return $this->getByIdWithRelations($id);
+        
+        return $this->getByIdWithRelations($id)['data'];
     }
 
     public function update(int $id, array $data): ?array
@@ -104,14 +147,29 @@ class CharacterRepository implements CharacterRepositoryInterface
         $updateData['id'] = $id;
         $result = $stmt->execute($updateData);
 
-        return $result ? $this->getByIdWithRelations($id) : null;
+        if ($result) {
+            if ($this->cacheConfig['enable_cache']['get_character_by_id']) {
+                $this->cache->delete("character:{$id}");
+            }
+            return $this->getByIdWithRelations($id)['data'];
+        }
+
+        return null;
     }
 
     public function delete(int $id): bool
     {
         $stmt = $this->db->prepare("DELETE FROM characters WHERE id = :id");
         $stmt->execute(['id' => $id]);
-        return $stmt->rowCount() > 0;
+        
+        if ($stmt->rowCount() > 0) {
+            if ($this->cacheConfig['enable_cache']['get_character_by_id']) {
+                $this->cache->delete("character:{$id}");
+            }
+            return true;
+        }
+        
+        return false;
     }
 
     public function equipmentExists(int $equipmentId): bool

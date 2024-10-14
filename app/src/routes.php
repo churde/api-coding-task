@@ -95,13 +95,17 @@ $container->set('characterModel', function ($c) {
 });
 
 $container->set('characterRepository', function ($c) {
-    return new \App\Repositories\CharacterRepository($c->get('db'), $c->get('characterModel'));
+    return new \App\Repositories\CharacterRepository(
+        $c->get('db'),
+        $c->get('characterModel'),
+        $c->get('cache'),
+        $c->get('cacheConfig')
+    );
 });
 
 $container->set('characterRepositoryInterface', function ($c) {
     return $c->get('characterRepository');
 });
-
 
 $container->set('log', function () {
     $log = new Logger('api');
@@ -113,16 +117,18 @@ $container->set('characterValidator', function ($c) {
     return new \App\Validators\CharacterValidator($c->get('characterRepositoryInterface'));
 });
 
+$container->set('characterService', function ($c) {
+    return new CharacterService(
+        $c->get('auth'),
+        $c->get('characterRepositoryInterface'),
+        $c->get('log'),
+        $c->get('characterValidator')
+    );
+});
+
 $container->set('characterController', function ($c) {
     return new CharacterController(
-        new CharacterService(
-            $c->get('auth'),
-            $c->get('cache'),
-            $c->get('cacheConfig'),
-            $c->get('characterRepositoryInterface'),
-            $c->get('log'),
-            $c->get('characterValidator')
-        ),
+        $c->get('characterService'),
         $c->get('characterValidator')
     );
 });
