@@ -26,13 +26,13 @@ class Auth
         return $this->authenticationService->validateToken($token);
     }
 
-    public function hasPermission($token, $permission, $model)
+    public function hasPermission($token, $permission)
     {
         $decoded = $this->validateToken($token);
         if (!$decoded) {
             return false;
         }
 
-        return $this->authorizationService->hasPermission($decoded->userId, $decoded->roleId, $permission, $model);
+        return $this->authorizationService->hasPermission($decoded->userId, $decoded->roleId, $permission);
     }
 }

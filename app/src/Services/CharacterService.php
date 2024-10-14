@@ -35,7 +35,7 @@ class CharacterService
 
     public function getAllCharacters(string $token, int $page, int $perPage): array
     {
-        if (!$this->auth->hasPermission($token, 'read', 'character')) {
+        if (!$this->auth->hasPermission($token, 'read')) {
             throw new \Exception('Forbidden', 403);
         }
 
@@ -67,7 +67,7 @@ class CharacterService
 
     public function getCharacterById(string $token, int $characterId): array
     {
-        if (!$this->auth->hasPermission($token, 'read', 'character')) {
+        if (!$this->auth->hasPermission($token, 'read')) {
             throw new \Exception('Forbidden', 403);
         }
 
@@ -126,7 +126,7 @@ class CharacterService
 
     public function updateCharacter(string $token, int $characterId, array $data): array
     {
-        if (!$this->auth->hasPermission($token, 'update', 'character')) {
+        if (!$this->auth->hasPermission($token, 'update')) {
             throw new \Exception('Forbidden', 403);
         }
 
@@ -152,7 +152,7 @@ class CharacterService
 
     public function deleteCharacter(string $token, int $characterId): void
     {
-        if (!$this->auth->hasPermission($token, 'delete', 'character')) {
+        if (!$this->auth->hasPermission($token, 'delete')) {
             throw new \Exception('Forbidden', 403);
         }
 

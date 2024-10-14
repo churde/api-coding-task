@@ -7,6 +7,7 @@ class Character {
     private $kingdom;
     private $equipmentId;
     private $factionId;
+    
 
     public function toArray(): array
     {

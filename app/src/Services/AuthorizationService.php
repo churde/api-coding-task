@@ -13,8 +13,8 @@ class AuthorizationService
         $this->permissionChecker = $permissionChecker;
     }
 
-    public function hasPermission($userId, $roleId, $permission, $model)
+    public function hasPermission($userId, $roleId, $permission)
     {
-        return $this->permissionChecker->hasPermission($userId, $roleId, $permission, $model);
+        return $this->permissionChecker->hasPermission($userId, $roleId, $permission);
     }
 }
