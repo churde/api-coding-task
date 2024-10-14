@@ -16,6 +16,7 @@ use App\Middleware\RateLimitMiddleware;
 use App\Services\CharacterService;
 use DI\Container;
 use App\Interfaces\CacheInterface;
+use App\Interfaces\CharacterServiceInterface;
 
 // Add this near the top of your file, with the other OpenAPI annotations
 
@@ -118,7 +119,8 @@ $container->set('characterValidator', function ($c) {
     return new \App\Validators\CharacterValidator($c->get('characterRepositoryInterface'));
 });
 
-$container->set('characterService', function ($c) {
+// Update the container configuration for CharacterService
+$container->set(CharacterServiceInterface::class, function ($c) {
     return new CharacterService(
         $c->get('auth'),
         $c->get('characterRepositoryInterface'),
@@ -127,9 +129,10 @@ $container->set('characterService', function ($c) {
     );
 });
 
+// Update the CharacterController configuration to use CharacterServiceInterface
 $container->set('characterController', function ($c) {
     return new CharacterController(
-        $c->get('characterService'),
+        $c->get(CharacterServiceInterface::class),
         $c->get('characterValidator')
     );
 });

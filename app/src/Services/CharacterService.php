@@ -2,12 +2,13 @@
 
 namespace App\Services;
 
+use App\Interfaces\CharacterServiceInterface;
 use App\Repositories\CharacterRepositoryInterface;
 use App\Services\Auth;
 use Monolog\Logger;
 use App\Validators\CharacterValidator;
 
-class CharacterService
+class CharacterService implements CharacterServiceInterface
 {
     private $auth;
     private $characterRepository;
@@ -51,9 +52,7 @@ class CharacterService
             throw new \Exception('Character not found', 404);
         }
 
-        return [
-            'data' => $character
-        ];
+        return $character;
     }
 
     public function createCharacter(array $data): array
@@ -95,7 +94,6 @@ class CharacterService
             throw new \Exception('Character not found', 404);
         }
 
-        $this->cache->delete('character_with_relations_' . $characterId);
         $this->log->info('Updated character with ID: ' . $characterId);
 
         return $updatedCharacter;
@@ -115,7 +113,6 @@ class CharacterService
             throw new \Exception('Character not found', 404);
         }
 
-        $this->cache->delete('character_with_relations_' . $characterId);
         $this->log->info('Deleted character with ID: ' . $characterId);
     }
 }
