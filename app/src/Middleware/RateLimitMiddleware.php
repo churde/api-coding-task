@@ -4,7 +4,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Psr7\Factory\ResponseFactory;
-use App\Cache;
+use App\Services\Cache;
 
 class RateLimitMiddleware
 {

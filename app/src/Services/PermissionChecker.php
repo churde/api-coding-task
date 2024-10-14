@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Cache;
+use App\Services\Cache;
 use PDO;
 
 class PermissionChecker

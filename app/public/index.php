@@ -3,7 +3,7 @@
 use App\Middleware\RateLimitMiddleware;
 use Slim\Factory\AppFactory;
 use DI\Container;
-use App\Cache;
+use App\Services\Cache;
 
 require __DIR__ . '/../vendor/autoload.php';
 

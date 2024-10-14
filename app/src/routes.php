@@ -8,7 +8,7 @@ use App\Models\Character;
 use OpenApi\Annotations as OA;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
-use App\Cache;
+use App\Services\Cache;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response as SlimResponse;
 use App\Services\Auth;

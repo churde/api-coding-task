@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Repositories\CharacterRepositoryInterface;
 use App\Services\Auth;
-use App\Cache;
+use App\Services\Cache;
 use Monolog\Logger;
 use App\Validators\CharacterValidator;
 
