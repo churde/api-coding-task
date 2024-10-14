@@ -9,7 +9,7 @@ use App\Services\AuthorizationService;
 
 class CharacterApiTest extends TestCase
 {
-    private $baseUrl = 'http://localhost:8080';
+    private $baseUrl = 'http://localhost:8080/v1'; // Updated to include /v1
     private $token;
     private $auth;
 
@@ -124,8 +124,6 @@ class CharacterApiTest extends TestCase
     /**
      * @depends testUpdateCharacter
      */
-    
-
     public function testDeleteCharacter($characterId)
     {
         $response = $this->makeRequest('DELETE', "/characters/{$characterId}");
@@ -148,7 +146,7 @@ class CharacterApiTest extends TestCase
         
         $data = json_decode($response['body'], true);
         $this->assertArrayHasKey('error', $data);
-        $this->assertEquals('Unauthorized: No token provided', $data['error']);
+        $this->assertEquals('Unauthorized', $data['error']);
     }
 
     public function testInvalidToken()

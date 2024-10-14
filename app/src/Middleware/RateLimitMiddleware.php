@@ -27,7 +27,7 @@ class RateLimitMiddleware
         if (empty($token)) {
             $responseFactory = new ResponseFactory();
             $response = $responseFactory->createResponse(401);
-            $response->getBody()->write(json_encode(['error' => 'Unauthorized: No token provided']));
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
             return $response->withHeader('Content-Type', 'application/json');
         }
 

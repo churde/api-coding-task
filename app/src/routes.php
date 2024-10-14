@@ -149,38 +149,62 @@ $app = AppFactory::createFromContainer($container);
 // Add body parsing middleware
 $app->addBodyParsingMiddleware();
 
-// Update the API key middleware to use JWT
-$authMiddleware = function (Request $request, RequestHandler $handler) use ($container) {
-    $auth = $container->get('auth');
-    $token = $request->getHeaderLine('Authorization');
-    $token = str_replace('Bearer ', '', $token);
-    if (!$auth->validateToken($token)) {
-        $response = new SlimResponse();
-        $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
-        return $response
-            ->withStatus(401)
-            ->withHeader('Content-Type', 'application/json');
+// Create middleware
+$authMiddleware = new class($container) {
+    private $container;
+
+    public function __construct($container) {
+        $this->container = $container;
     }
-    return $handler->handle($request);
+
+    public function __invoke($request, $handler) {
+        $auth = $this->container->get('auth');
+        $token = $request->getHeaderLine('Authorization');
+        $token = str_replace('Bearer ', '', $token);
+        if (!$auth->validateToken($token)) {
+            $response = new SlimResponse();
+            $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
+            return $response
+                ->withStatus(401)
+                ->withHeader('Content-Type', 'application/json');
+        }
+        return $handler->handle($request);
+    }
 };
 
-// Add the auth middleware
-$app->add($authMiddleware);
+$rateLimitMiddleware = new RateLimitMiddleware(
+    $container->get(CacheInterface::class),
+    $container->get('settings')['rate_limit']
+);
 
-// Add rate limiting middleware
-// Define rate limiting middleware
-$rateLimitMiddleware = function ($request, $handler) use ($container) {
-    $cache = $container->get(CacheInterface::class);
-    $settings = $container->get('settings');
-    $rateLimitMiddleware = new RateLimitMiddleware(
-        $cache,
-        $settings['rate_limit']
-    );
-    return $rateLimitMiddleware($request, $handler);
-};
+// Group routes for version 1
+$app->group('/v1', function ($group) use ($container) {
+    // Characters routes
+    $group->get('/characters', function (Request $request, Response $response) use ($container) {
+        return $container->get('characterController')->getAllCharacters($request, $response);
+    });
 
-// Add rate limiting middleware
-$app->add($rateLimitMiddleware);
+    $group->post('/characters', function (Request $request, Response $response) use ($container) {
+        return $container->get('characterController')->createCharacter($request, $response);
+    });
+
+    $group->get('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('characterController')->getCharacterById($request, $response, $args);
+    });
+
+    $group->put('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('characterController')->updateCharacter($request, $response, $args);
+    });
+
+    $group->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('characterController')->deleteCharacter($request, $response, $args);
+    });
+})->add($authMiddleware)->add($rateLimitMiddleware);
+
+// Update OpenAPI annotations for versioned routes
+/**
+ * @OA\Server(url="/v1")
+ */
 
 /**
  * @OA\Get(
@@ -236,9 +260,6 @@ $app->add($rateLimitMiddleware);
  *     )
  * )
  */
-$app->get('/characters', function (Request $request, Response $response) use ($container) {
-    return $container->get('characterController')->getAllCharacters($request, $response);
-});
 
 /**
  * @OA\Post(
@@ -268,9 +289,6 @@ $app->get('/characters', function (Request $request, Response $response) use ($c
  *     )
  * )
  */
-$app->post('/characters', function (Request $request, Response $response) use ($container) {
-    return $container->get('characterController')->createCharacter($request, $response);
-});
 
 /**
  * @OA\Get(
@@ -311,9 +329,6 @@ $app->post('/characters', function (Request $request, Response $response) use ($
  *     )
  * )
  */
-$app->get('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
-    return $container->get('characterController')->getCharacterById($request, $response, $args);
-});
 
 /**
  * @OA\Put(
@@ -352,9 +367,6 @@ $app->get('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->put('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
-    return $container->get('characterController')->updateCharacter($request, $response, $args);
-});
 
 /**
  * @OA\Delete(
@@ -388,6 +400,3 @@ $app->put('/characters/{id}', function (Request $request, Response $response, $a
  *     )
  * )
  */
-$app->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
-    return $container->get('characterController')->deleteCharacter($request, $response, $args);
-});
