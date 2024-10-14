@@ -99,7 +99,7 @@ $container->set('settings', function () {
 
 
 $container->set('characterModel', function ($c) {
-    return new Character($c->get('db'));
+    return new Character();
 });
 
 $container->set('characterRepository', function ($c) {

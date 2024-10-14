@@ -115,9 +115,15 @@ class CharacterRepository implements CharacterRepositoryInterface
 
     public function create(array $data): array
     {
-        $character = $this->characterModel::fromArray($data);
+        $character = new $this->characterModel($data);
         $stmt = $this->db->prepare("INSERT INTO characters (name, birth_date, kingdom, equipment_id, faction_id) VALUES (:name, :birth_date, :kingdom, :equipment_id, :faction_id)");
-        $stmt->execute(array_diff_key($character->toArray(), ['id' => null]));
+        $stmt->execute([
+            'name' => $character->getName(),
+            'birth_date' => $character->getBirthDate(),
+            'kingdom' => $character->getKingdom(),
+            'equipment_id' => $character->getEquipmentId(),
+            'faction_id' => $character->getFactionId()
+        ]);
         $id = $this->db->lastInsertId();
         
         return $this->getByIdWithRelations($id)['data'];

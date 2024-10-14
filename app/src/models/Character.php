@@ -8,6 +8,31 @@ class Character {
     private $equipmentId;
     private $factionId;
     
+    
+
+    public function __construct(array $data = []) {
+        $this->id = $data['id'] ?? null;
+        $this->name = $data['name'] ?? null;
+        $this->birthDate = $data['birth_date'] ?? null;
+        $this->kingdom = $data['kingdom'] ?? null;
+        $this->equipmentId = $data['equipment_id'] ?? null;
+        $this->factionId = $data['faction_id'] ?? null;
+    }
+
+    // Getter methods
+    public function getId() { return $this->id; }
+    public function getName() { return $this->name; }
+    public function getBirthDate() { return $this->birthDate; }
+    public function getKingdom() { return $this->kingdom; }
+    public function getEquipmentId() { return $this->equipmentId; }
+    public function getFactionId() { return $this->factionId; }
+
+    // Setter methods
+    public function setName($name) { $this->name = $name; }
+    public function setBirthDate($birthDate) { $this->birthDate = $birthDate; }
+    public function setKingdom($kingdom) { $this->kingdom = $kingdom; }
+    public function setEquipmentId($equipmentId) { $this->equipmentId = $equipmentId; }
+    public function setFactionId($factionId) { $this->factionId = $factionId; }
 
     public function toArray(): array
     {
@@ -19,17 +44,5 @@ class Character {
             'equipment_id' => $this->equipmentId,
             'faction_id' => $this->factionId,
         ];
-    }
-
-    public static function fromArray(array $data): self
-    {
-        $character = new self();
-        $character->id = $data['id'] ?? null;
-        $character->name = $data['name'] ?? null;
-        $character->birthDate = $data['birth_date'] ?? null;
-        $character->kingdom = $data['kingdom'] ?? null;
-        $character->equipmentId = $data['equipment_id'] ?? null;
-        $character->factionId = $data['faction_id'] ?? null;
-        return $character;
     }
 }
