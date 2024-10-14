@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Character;
+use App\Formatters\CharacterFormatter;
 use PDO;
 use InvalidArgumentException;
 use App\Models\Equipment;
@@ -36,7 +37,7 @@ class CharacterRepository implements CharacterRepositoryInterface
         $stmt->execute();
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $formattedResults = array_map([$this, 'formatCharacterWithRelations'], $results);
+        $formattedResults = array_map([CharacterFormatter::class, 'formatWithRelations'], $results);
 
         $countQuery = "SELECT COUNT(*) FROM characters";
         $countStmt = $this->db->query($countQuery);
@@ -67,7 +68,7 @@ class CharacterRepository implements CharacterRepositoryInterface
         $stmt->execute([$id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $result ? $this->formatCharacterWithRelations($result) : null;
+        return $result ? CharacterFormatter::formatWithRelations($result) : null;
     }
 
     public function create(array $data): array
@@ -111,27 +112,6 @@ class CharacterRepository implements CharacterRepositoryInterface
         $stmt = $this->db->prepare("DELETE FROM characters WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->rowCount() > 0;
-    }
-
-    private function formatCharacterWithRelations($data): array
-    {
-        return [
-            'id' => $data['id'],
-            'name' => $data['name'],
-            'birth_date' => $data['birth_date'],
-            'kingdom' => $data['kingdom'],
-            'equipment' => [
-                'id' => $data['equipment_id'],
-                'name' => $data['equipment_name'],
-                'type' => $data['equipment_type'],
-                'made_by' => $data['equipment_made_by']
-            ],
-            'faction' => [
-                'id' => $data['faction_id'],
-                'name' => $data['faction_name'],
-                'description' => $data['faction_description']
-            ]
-        ];
     }
 
     public function equipmentExists(int $equipmentId): bool
