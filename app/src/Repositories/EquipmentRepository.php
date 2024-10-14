@@ -10,10 +10,10 @@ use PDO;
 
 class EquipmentRepository implements EquipmentRepositoryInterface
 {
-    private $db;
-    private $equipmentModel;
-    private $cache;
-    private $cacheConfig;
+    private PDO $db;
+    private Equipment $equipmentModel;
+    private Cache $cache;
+    private array $cacheConfig;
 
     public function __construct(PDO $db, Equipment $equipmentModel, Cache $cache, array $cacheConfig)
     {

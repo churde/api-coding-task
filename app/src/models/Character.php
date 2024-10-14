@@ -1,12 +1,12 @@
 <?php namespace App\Models;
 
 class Character {
-    private $id;
-    private $name;
-    private $birthDate;
-    private $kingdom;
-    private $equipmentId;
-    private $factionId;
+    private ?int $id;
+    private ?string $name;
+    private ?string $birthDate;
+    private ?string $kingdom;
+    private ?int $equipmentId;
+    private ?int $factionId;
     
     
 
@@ -20,19 +20,19 @@ class Character {
     }
 
     // Getter methods
-    public function getId() { return $this->id; }
-    public function getName() { return $this->name; }
-    public function getBirthDate() { return $this->birthDate; }
-    public function getKingdom() { return $this->kingdom; }
-    public function getEquipmentId() { return $this->equipmentId; }
-    public function getFactionId() { return $this->factionId; }
+    public function getId(): ?int { return $this->id; }
+    public function getName(): ?string { return $this->name; }
+    public function getBirthDate(): ?string { return $this->birthDate; }
+    public function getKingdom(): ?string { return $this->kingdom; }
+    public function getEquipmentId(): ?int { return $this->equipmentId; }
+    public function getFactionId(): ?int { return $this->factionId; }
 
     // Setter methods
-    public function setName($name) { $this->name = $name; }
-    public function setBirthDate($birthDate) { $this->birthDate = $birthDate; }
-    public function setKingdom($kingdom) { $this->kingdom = $kingdom; }
-    public function setEquipmentId($equipmentId) { $this->equipmentId = $equipmentId; }
-    public function setFactionId($factionId) { $this->factionId = $factionId; }
+    public function setName(?string $name): void { $this->name = $name; }
+    public function setBirthDate(?string $birthDate): void { $this->birthDate = $birthDate; }
+    public function setKingdom(?string $kingdom): void { $this->kingdom = $kingdom; }
+    public function setEquipmentId(?int $equipmentId): void { $this->equipmentId = $equipmentId; }
+    public function setFactionId(?int $factionId): void { $this->factionId = $factionId; }
 
     public function toArray(): array
     {

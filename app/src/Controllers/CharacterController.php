@@ -9,8 +9,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class CharacterController
 {
-    private $characterService;
-    private $characterValidator;
+    private CharacterService $characterService;
+    private CharacterValidator $characterValidator;
 
     public function __construct(CharacterService $characterService, CharacterValidator $characterValidator)
     {

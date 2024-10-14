@@ -9,9 +9,9 @@ use App\Services\AuthorizationService;
 
 class FactionApiViewerTest extends TestCase
 {
-    private $baseUrl = 'http://localhost:8080/v1';
-    private $viewerToken;
-    private $adminToken;
+    private string $baseUrl = 'http://localhost:8080/v1';
+    private string $viewerToken;
+    private string $adminToken;
 
     protected function setUp(): void
     {

@@ -63,44 +63,42 @@ $settings = require __DIR__ . '/../config/app.php';
 $container->set('settings', $settings);
 
 // Set up container definitions
-$container->set('db', function () {
+$container->set('db', function (): PDO {
     return new PDO('mysql:host=db;dbname=lotr;charset=utf8mb4', 'root', 'root', [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 });
 
-$container->set(CacheInterface::class, function () {
+$container->set(CacheInterface::class, function (): CacheInterface {
     return new Cache();
 });
 
-
-$container->set('tokenManager', function () {
+$container->set('tokenManager', function (): \App\Services\TokenManager {
     $secretKey = getenv('JWT_SECRET_KEY') ?: 'your-secret-key';
     return new \App\Services\TokenManager($secretKey);
 });
 
-$container->set('permissionChecker', function ($c) {
+$container->set('permissionChecker', function (Container $c): \App\Services\PermissionChecker {
     return new \App\Services\PermissionChecker($c->get(CacheInterface::class), $c->get('db'));
 });
 
-$container->set('auth', function ($c) {
+$container->set('auth', function (Container $c): Auth {
     return new Auth(
         new \App\Services\AuthenticationService($c->get('tokenManager')),
         new \App\Services\AuthorizationService($c->get('permissionChecker'))
     );
 });
 
-$container->set('settings', function () {
+$container->set('settings', function (): array {
     return require __DIR__ . '/../config/app.php';
 });
 
-
-$container->set('characterModel', function ($c) {
+$container->set('characterModel', function (): Character {
     return new Character();
 });
 
-$container->set('characterRepository', function ($c) {
+$container->set('characterRepository', function (Container $c): \App\Repositories\CharacterRepository {
     return new \App\Repositories\CharacterRepository(
         $c->get('db'),
         $c->get('characterModel'),
@@ -109,22 +107,22 @@ $container->set('characterRepository', function ($c) {
     );
 });
 
-$container->set('characterRepositoryInterface', function ($c) {
+$container->set('characterRepositoryInterface', function (Container $c): \App\Interfaces\CharacterRepositoryInterface {
     return $c->get('characterRepository');
 });
 
-$container->set('log', function () {
+$container->set('log', function (): Logger {
     $log = new Logger('api');
     $log->pushHandler(new StreamHandler(__DIR__ . '/../logs/app.log', Logger::DEBUG));
     return $log;
 });
 
-$container->set('characterValidator', function ($c) {
+$container->set('characterValidator', function (Container $c): \App\Validators\CharacterValidator {
     return new \App\Validators\CharacterValidator($c->get('characterRepositoryInterface'));
 });
 
 // Update the container configuration for CharacterService
-$container->set(CharacterServiceInterface::class, function ($c) {
+$container->set(CharacterServiceInterface::class, function (Container $c): CharacterServiceInterface {
     return new CharacterService(
         $c->get('auth'),
         $c->get('characterRepositoryInterface'),
@@ -134,7 +132,7 @@ $container->set(CharacterServiceInterface::class, function ($c) {
 });
 
 // Update the CharacterController configuration to use CharacterServiceInterface
-$container->set('characterController', function ($c) {
+$container->set('characterController', function (Container $c): CharacterController {
     return new CharacterController(
         $c->get(CharacterServiceInterface::class),
         $c->get('characterValidator')
@@ -225,13 +223,13 @@ $app->addBodyParsingMiddleware();
 
 // Create middleware
 $authMiddleware = new class($container) {
-    private $container;
+    private Container $container;
 
-    public function __construct($container) {
+    public function __construct(Container $container) {
         $this->container = $container;
     }
 
-    public function __invoke($request, $handler) {
+    public function __invoke(Request $request, $handler): Response {
         $auth = $this->container->get('auth');
         $token = $request->getHeaderLine('Authorization');
         $token = str_replace('Bearer ', '', $token);

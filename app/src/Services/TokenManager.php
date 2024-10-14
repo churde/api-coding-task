@@ -7,7 +7,7 @@ use Firebase\JWT\Key;
 
 class TokenManager
 {
-    private $secretKey;
+    private string $secretKey;
 
     public function __construct(string $secretKey)
     {

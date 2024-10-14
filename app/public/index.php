@@ -1,6 +1,5 @@
 <?php
 
-use App\Middleware\RateLimitMiddleware;
 use Slim\Factory\AppFactory;
 use DI\Container;
 use App\Services\Cache;

@@ -9,8 +9,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class EquipmentController
 {
-    private $equipmentService;
-    private $equipmentValidator;
+    private EquipmentService $equipmentService;
+    private EquipmentValidator $equipmentValidator;
 
     public function __construct(EquipmentService $equipmentService, EquipmentValidator $equipmentValidator)
     {

@@ -10,10 +10,10 @@ use Monolog\Logger;
 
 class FactionService implements FactionServiceInterface
 {
-    private $auth;
-    private $factionRepository;
-    private $log;
-    private $factionValidator;
+    private Auth $auth;
+    private FactionRepositoryInterface $factionRepository;
+    private Logger $log;
+    private FactionValidator $factionValidator;
 
     public function __construct(
         Auth $auth,

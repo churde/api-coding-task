@@ -6,7 +6,7 @@ use App\Interfaces\CacheInterface;
 
 class Cache implements CacheInterface
 {
-    private $redis;
+    private Client $redis;
 
     public function __construct()
     {

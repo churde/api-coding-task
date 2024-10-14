@@ -6,7 +6,7 @@ use App\Services\PermissionChecker;
 
 class AuthorizationService
 {
-    private $permissionChecker;
+    private PermissionChecker $permissionChecker;
 
     public function __construct(PermissionChecker $permissionChecker)
     {

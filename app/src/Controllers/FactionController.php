@@ -9,8 +9,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class FactionController
 {
-    private $factionService;
-    private $factionValidator;
+    private FactionService $factionService;
+    private FactionValidator $factionValidator;
 
     public function __construct(FactionService $factionService, FactionValidator $factionValidator)
     {

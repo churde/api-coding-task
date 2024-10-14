@@ -6,7 +6,7 @@ use App\Interfaces\FactionRepositoryInterface;
 
 class FactionValidator
 {
-    private $factionRepository;
+    private FactionRepositoryInterface $factionRepository;
 
     public function __construct(FactionRepositoryInterface $factionRepository)
     {

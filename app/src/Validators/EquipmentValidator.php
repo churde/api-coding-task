@@ -6,7 +6,7 @@ use App\Interfaces\EquipmentRepositoryInterface;
 
 class EquipmentValidator
 {
-    private $equipmentRepository;
+    private EquipmentRepositoryInterface $equipmentRepository;
 
     public function __construct(EquipmentRepositoryInterface $equipmentRepository)
     {

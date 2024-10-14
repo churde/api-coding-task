@@ -8,9 +8,9 @@ use App\Services\Cache;
 
 class RateLimitMiddleware
 {
-    private $cache;
-    private $limit;
-    private $window;
+    private Cache $cache;
+    private int $limit;
+    private int $window;
 
     public function __construct(Cache $cache, array $config)
     {

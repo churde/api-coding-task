@@ -6,8 +6,8 @@ use PHPUnit\Framework\TestCase;
 
 class UnitTestBase extends TestCase
 {
-    protected $baseUrl = 'http://localhost:8080/v1';
-    protected $token;
+    protected string $baseUrl = 'http://localhost:8080/v1';
+    protected ?string $token = null;
 
     protected function setUp(): void
     {

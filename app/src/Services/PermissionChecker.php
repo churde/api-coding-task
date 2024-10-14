@@ -7,8 +7,8 @@ use PDO;
 
 class PermissionChecker
 {
-    private $cache;
-    private $db;
+    private Cache $cache;
+    private PDO $db;
 
     public function __construct(Cache $cache, PDO $db)
     {

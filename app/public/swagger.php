@@ -1,7 +1,6 @@
 <?php
 require __DIR__ . '/../vendor/autoload.php';
 
-use OpenApi\Annotations as OA;
 use OpenApi\Generator;
 
 // Generate the OpenAPI documentation

@@ -10,10 +10,10 @@ use Monolog\Logger;
 
 class CharacterService implements CharacterServiceInterface
 {
-    private $auth;
-    private $characterRepository;
-    private $log;
-    private $characterValidator;
+    private Auth $auth;
+    private CharacterRepositoryInterface $characterRepository;
+    private Logger $log;
+    private CharacterValidator $characterValidator;
 
     public function __construct(
         Auth $auth,

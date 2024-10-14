@@ -6,7 +6,7 @@ use App\Interfaces\CharacterRepositoryInterface;
 
 class CharacterValidator
 {
-    private $characterRepository;
+    private CharacterRepositoryInterface $characterRepository;
 
     public function __construct(CharacterRepositoryInterface $characterRepository)
     {

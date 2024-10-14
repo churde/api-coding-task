@@ -6,7 +6,7 @@ use App\Services\TokenManager;
 
 class AuthenticationService
 {
-    private $tokenManager;
+    private TokenManager $tokenManager;
 
     public function __construct(TokenManager $tokenManager)
     {

@@ -7,8 +7,8 @@ use App\Services\AuthorizationService;
 
 class Auth
 {
-    private $authenticationService;
-    private $authorizationService;
+    private AuthenticationService $authenticationService;
+    private AuthorizationService $authorizationService;
 
     public function __construct(AuthenticationService $authenticationService, AuthorizationService $authorizationService)
     {

@@ -10,10 +10,10 @@ use Monolog\Logger;
 
 class EquipmentService implements EquipmentServiceInterface
 {
-    private $auth;
-    private $equipmentRepository;
-    private $log;
-    private $equipmentValidator;
+    private Auth $auth;
+    private EquipmentRepositoryInterface $equipmentRepository;
+    private Logger $log;
+    private EquipmentValidator $equipmentValidator;
 
     public function __construct(
         Auth $auth,

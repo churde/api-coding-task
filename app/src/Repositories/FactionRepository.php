@@ -10,10 +10,10 @@ use PDO;
 
 class FactionRepository implements FactionRepositoryInterface
 {
-    private $db;
-    private $factionModel;
-    private $cache;
-    private $cacheConfig;
+    private PDO $db;
+    private Faction $factionModel;
+    private Cache $cache;
+    private array $cacheConfig;
 
     public function __construct(PDO $db, Faction $factionModel, Cache $cache, array $cacheConfig)
     {

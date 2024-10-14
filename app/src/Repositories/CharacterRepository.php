@@ -10,10 +10,10 @@ use PDO;
 
 class CharacterRepository implements CharacterRepositoryInterface
 {
-    private $db;
-    private $characterModel;
-    private $cache;
-    private $cacheConfig;
+    private PDO $db;
+    private Character $characterModel;
+    private Cache $cache;
+    private array $cacheConfig;
 
     public function __construct(PDO $db, Character $characterModel, Cache $cache, array $cacheConfig)
     {
