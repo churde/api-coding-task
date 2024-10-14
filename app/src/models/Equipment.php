@@ -1,36 +1,36 @@
-<?php
+<?php namespace App\Models;
 
 class Equipment {
-    private $db;
+    private $id;
+    private $name;
+    private $type;
+    private $made_by;
 
-    public function __construct($db) {
-        $this->db = $db;
+    public function __construct(array $data = []) {
+        $this->id = $data['id'] ?? null;
+        $this->name = $data['name'] ?? null;
+        $this->type = $data['type'] ?? null;
+        $this->made_by = $data['made_by'] ?? null;
     }
 
-    public function getAllEquipments() {
-        $stmt = $this->db->query("SELECT * FROM equipments");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+    // Getter methods
+    public function getId() { return $this->id; }
+    public function getName() { return $this->name; }
+    public function getType() { return $this->type; }
+    public function getMadeBy() { return $this->made_by; }
 
-    public function getEquipmentById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM equipments WHERE id = :id");
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
+    // Setter methods
+    public function setName($name) { $this->name = $name; }
+    public function setType($type) { $this->type = $type; }
+    public function setMadeBy($made_by) { $this->made_by = $made_by; }
 
-    public function createEquipment($data) {
-        $stmt = $this->db->prepare("INSERT INTO equipments (name, type, made_by) VALUES (:name, :type, :made_by)");
-        return $stmt->execute($data);
-    }
-
-    public function updateEquipment($id, $data) {
-        $data['id'] = $id;
-        $stmt = $this->db->prepare("UPDATE equipments SET name = :name, type = :type, made_by = :made_by WHERE id = :id");
-        return $stmt->execute($data);
-    }
-
-    public function deleteEquipment($id) {
-        $stmt = $this->db->prepare("DELETE FROM equipments WHERE id = :id");
-        return $stmt->execute(['id' => $id]);
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'type' => $this->type,
+            'made_by' => $this->made_by,
+        ];
     }
 }

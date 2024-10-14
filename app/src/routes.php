@@ -143,6 +143,44 @@ $container->set('characterController', function ($c) {
     );
 });
 
+// Add these new container definitions
+$container->set('equipmentModel', function ($c) {
+    return new \App\Models\Equipment();
+});
+
+$container->set('equipmentRepository', function ($c) {
+    return new \App\Repositories\EquipmentRepository(
+        $c->get('db'),
+        $c->get('equipmentModel'),
+        $c->get(CacheInterface::class),
+        $c->get('settings')['cache']
+    );
+});
+
+$container->set('equipmentRepositoryInterface', function ($c) {
+    return $c->get('equipmentRepository');
+});
+
+$container->set('equipmentValidator', function ($c) {
+    return new \App\Validators\EquipmentValidator($c->get('equipmentRepositoryInterface'));
+});
+
+$container->set(\App\Interfaces\EquipmentServiceInterface::class, function ($c) {
+    return new \App\Services\EquipmentService(
+        $c->get('auth'),
+        $c->get('equipmentRepositoryInterface'),
+        $c->get('log'),
+        $c->get('equipmentValidator')
+    );
+});
+
+$container->set('equipmentController', function ($c) {
+    return new \App\Controllers\EquipmentController(
+        $c->get(\App\Interfaces\EquipmentServiceInterface::class),
+        $c->get('equipmentValidator')
+    );
+});
+
 // Create the Slim app
 $app = AppFactory::createFromContainer($container);
 
@@ -198,6 +236,27 @@ $app->group('/v1', function ($group) use ($container) {
 
     $group->delete('/characters/{id}', function (Request $request, Response $response, $args) use ($container) {
         return $container->get('characterController')->deleteCharacter($request, $response, $args);
+    });
+
+    // Equipment routes
+    $group->get('/equipment', function (Request $request, Response $response) use ($container) {
+        return $container->get('equipmentController')->getAllEquipment($request, $response);
+    });
+
+    $group->post('/equipment', function (Request $request, Response $response) use ($container) {
+        return $container->get('equipmentController')->createEquipment($request, $response);
+    });
+
+    $group->get('/equipment/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('equipmentController')->getEquipmentById($request, $response, $args);
+    });
+
+    $group->put('/equipment/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('equipmentController')->updateEquipment($request, $response, $args);
+    });
+
+    $group->delete('/equipment/{id}', function (Request $request, Response $response, $args) use ($container) {
+        return $container->get('equipmentController')->deleteEquipment($request, $response, $args);
     });
 })->add($authMiddleware)->add($rateLimitMiddleware);
 
@@ -397,6 +456,181 @@ $app->group('/v1', function ($group) use ($container) {
  *         response=403,
  *         description="Forbidden",
  *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     )
+ * )
+ */
+
+// Add OpenAPI annotations for equipment routes
+/**
+ * @OA\Schema(
+ *     schema="Equipment",
+ *     required={"name", "type", "made_by"},
+ *     @OA\Property(property="id", type="integer"),
+ *     @OA\Property(property="name", type="string"),
+ *     @OA\Property(property="type", type="string"),
+ *     @OA\Property(property="made_by", type="string")
+ * )
+ */
+
+/**
+ * @OA\Get(
+ *     path="/equipment",
+ *     summary="Get all equipment",
+ *     tags={"Equipment"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="page",
+ *         in="query",
+ *         description="Page number",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="per_page",
+ *         in="query",
+ *         description="Number of items per page",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=10)
+ *     ),
+ *     @OA\Parameter(
+ *         name="search",
+ *         in="query",
+ *         description="Search term for filtering equipment by name or type",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful operation",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Equipment")),
+ *             @OA\Property(property="meta", type="object",
+ *                 @OA\Property(property="current_page", type="integer"),
+ *                 @OA\Property(property="per_page", type="integer"),
+ *                 @OA\Property(property="total_count", type="integer"),
+ *                 @OA\Property(property="total_pages", type="integer"),
+ *                 @OA\Property(property="cache_used", type="boolean")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden",
+ *         @OA\JsonContent(ref="#/components/schemas/Error")
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Post(
+ *     path="/equipment",
+ *     summary="Create a new equipment",
+ *     tags={"Equipment"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"name", "type"},
+ *             @OA\Property(property="name", type="string"),
+ *             @OA\Property(property="type", type="string"),
+ *             @OA\Property(property="made_by", type="string")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=201,
+ *         description="Equipment created successfully",
+ *         @OA\JsonContent(ref="#/components/schemas/Equipment")
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input"
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Get(
+ *     path="/equipment/{id}",
+ *     summary="Get an equipment by ID",
+ *     tags={"Equipment"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful operation",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="data", ref="#/components/schemas/Equipment"),
+ *             @OA\Property(property="meta", type="object",
+ *                 @OA\Property(property="cache_used", type="boolean")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Equipment not found"
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Put(
+ *     path="/equipment/{id}",
+ *     summary="Update an equipment",
+ *     tags={"Equipment"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(ref="#/components/schemas/Equipment")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Equipment updated successfully",
+ *         @OA\JsonContent(ref="#/components/schemas/Equipment")
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Equipment not found"
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Delete(
+ *     path="/equipment/{id}",
+ *     summary="Delete an equipment",
+ *     tags={"Equipment"},
+ *     security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=204,
+ *         description="Equipment deleted successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Equipment not found"
  *     )
  * )
  */
