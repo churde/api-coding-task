@@ -29,6 +29,8 @@ HELP_COLOR := $(BLUE)
 IMAGE_NAME=graphicresources/itpg-api-coding-task
 IMAGE_TAG_BASE=base
 IMAGE_TAG_DEV=development
+# Define the maximum number of retries
+MAX_RETRIES := 3
 
 # DEFAULT COMMANDS -----------------------------------------------------------------------------------------------------
 all: help
@@ -43,7 +45,23 @@ help: ## Listar comandos disponibles en este Makefile
 
 
 # BUILD COMMANDS -------------------------------------------------------------------------------------------------------
-build: build-container composer-install ## Construye las dependencias del proyecto
+build: ## Construye las dependencias del proyecto
+	@echo "Building Docker containers..."
+	@for i in $$(seq 1 $(MAX_RETRIES)); do \
+		if make build-container && make composer-install; then \
+			echo "${GREEN}Build successful!${RESET}"; \
+			exit 0; \
+		else \
+			echo "${YELLOW}Attempt $$i failed. Retrying in 5 seconds...${RESET}"; \
+			if [ $$i -eq $(MAX_RETRIES) ]; then \
+				echo "${RED}Build failed after $(MAX_RETRIES) attempts.${RESET}"; \
+				echo "${RED}Please check your internet connection and try again.${RESET}"; \
+				echo "${RED}If the problem persists, there might be an issue with the Alpine Linux repositories.${RESET}"; \
+				exit 1; \
+			fi; \
+			sleep 5; \
+		fi; \
+	done
 
 build-container: ## Construye el contenedor de la aplicación
 	docker build --no-cache --target development -t $(IMAGE_NAME):$(IMAGE_TAG_DEV) .

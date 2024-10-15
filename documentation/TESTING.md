@@ -135,6 +135,23 @@ You can adjust these settings to fine-tune the API's behavior.
 
 The LOTR API project includes comprehensive unit tests to ensure the reliability and correctness of the API endpoints. These tests cover various aspects of the API functionality for different user roles (Admin, Editor, and Viewer).
 
+### Test Environment
+
+It's important to note that in this project, for simplicity and ease of setup, the unit tests are conducted on the same database used by the application. However, in a production environment or more complex projects, it's generally recommended to use a separate, identical database for testing purposes.
+
+Using a separate test database offers several advantages:
+1. It prevents test data from interfering with production data.
+2. It allows for more aggressive testing without risking damage to live data.
+3. It enables parallel testing without data conflicts.
+
+In our case, the tests are designed to clean up after themselves, but users should be aware that running tests may temporarily affect the state of the database.
+
+### Running the Tests
+
+To run the unit tests, use the following command:
+
+
+
 ### Test Structure
 
 The unit tests are organized into the following categories:

@@ -49,11 +49,16 @@ WHERE
     (r.name = 'editor' AND p.name IN ('read', 'create', 'update')) OR
     (r.name = 'viewer' AND p.name = 'read');
 
--- Create a test user (password is 'password' - remember to use proper password hashing in production)
-INSERT INTO users (username, password) VALUES ('testuser', 'password');
+-- Create test users (password is 'password' - remember to use proper password hashing in production)
+INSERT INTO users (username, password) VALUES 
+('admin', 'password'),
+('editor', 'password'),
+('viewer', 'password');
 
--- Assign the 'viewer' role to the test user
+-- Assign roles to test users
 INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM users u, roles r
-WHERE u.username = 'testuser' AND r.name = 'viewer';
+WHERE (u.username = 'admin' AND r.name = 'admin')
+   OR (u.username = 'editor' AND r.name = 'editor')
+   OR (u.username = 'viewer' AND r.name = 'viewer');

@@ -8,9 +8,19 @@ This document provides detailed instructions on how to set up and build the LOTR
 
 To set up the entire project, initialize the database, populate it with sample data, run all tests, and generate authentication tokens:
 
-```bash
-make setup-and-run-tests
-```
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/churde/api-coding-task.git
+   cd api-coding-task
+   ```
+
+2. Run the all-in-one setup command:
+
+   ```bash
+   make setup-and-run-tests
+   ```
 
 This command will:
 
@@ -48,7 +58,7 @@ For more information on how to test the API using Swagger UI, including details 
 
    ```bash
    git clone https://github.com/churde/api-coding-task.git
-   cd lotr-api
+   cd api-coding-task
    ```
 
 2. Build the Docker containers and install dependencies:
@@ -96,6 +106,19 @@ For more information on how to test the API using Swagger UI, including details 
    ```bash
    make run-tests
    ```
+
+9. Generate and print Swagger UI link and authentication tokens:
+
+   ```bash
+   make print-swagger-link
+   ```
+
+   This command will display the Swagger UI link and generate authentication tokens for different user roles (Admin, Editor, Viewer). You can use these tokens to authenticate and test the API endpoints in Swagger UI.
+
+10. Access the Swagger UI:
+
+    Open the link provided by the `print-swagger-link` command in your web browser. You can use the generated tokens to authorize and interact with the API endpoints directly from the Swagger UI.
+
 
 ## Available Commands
 
