@@ -7,7 +7,7 @@ This document provides detailed instructions on how to set up and build the LOTR
 To set up the entire project, initialize the database, populate it with sample data, run all tests, and generate authentication tokens:
 
 ```bash
-make setup
+make setup-and-test
 ```
 
 This command will:
@@ -29,16 +29,16 @@ Once the setup is complete, the API will be available at:
 http://localhost:8080
 ```
 
-For API documentation and testing, visit:
+## Testing the API
 
+For API documentation and testing, visit:
 ```
 http://localhost:8080/swagger.php
 ```
 
-Use the generated JWT tokens to authenticate in Swagger UI:
-1. Copy a token for the desired role (admin, editor, or viewer)
-2. Click on the 'Authorize' button in Swagger UI
-3. In the 'Value' field, enter: Bearer <your_token>
+For more information on how to test the API using Swagger UI, including details on available endpoints, pagination, search functionality, and rate limiting, please refer to the [Testing Guide](TESTING.md).
+
+
 
 ## Detailed Setup Steps
 

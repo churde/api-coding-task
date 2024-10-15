@@ -4,12 +4,12 @@ return [
     'cache' => [
         'ttl' => 3600, // Cache TTL in seconds (1 hour)
         'enable_cache' => [
-            'get_all_characters' => false,
-            'get_character_by_id' => false,
+            'get_all_characters' => true,
+            'get_character_by_id' => true,
             'get_all_equipment' => true,
             'get_equipment_by_id' => true,
-            'get_all_factions' => false,
-            'get_faction_by_id' => false,
+            'get_all_factions' => true,
+            'get_faction_by_id' => true,
             // Add more route-specific cache flags as needed
         ],
     ],

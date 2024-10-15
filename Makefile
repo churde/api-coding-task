@@ -88,8 +88,6 @@ populate-db: ensure-app-running ## Populate the database with fake data
 # TEST COMMANDS ------------------------------------------------------------------------------------------------------
 run-tests: ## Run all tests
 	docker-compose exec -T php vendor/bin/phpunit
-	@$(MAKE) generate-tokens
-	@$(MAKE) print-swagger-link
 
 generate-tokens: ## Generate JWT tokens for each role
 	@echo "Generating JWT tokens for each role..."
@@ -101,7 +99,7 @@ generate-tokens: ## Generate JWT tokens for each role
 	@docker-compose exec -T php php /var/www/opt/generate_token.php 3 3
 
 # ALL-IN-ONE COMMAND -------------------------------------------------------------------------------------------------
-setup-and-run-tests: build up wait-for-db init-db setup-auth-tables populate-db run-tests ## Set up everything, run tests, and print Swagger link
+setup-and-run-tests: build up wait-for-db init-db setup-auth-tables populate-db run-tests print-swagger-link ## Set up everything, run tests, and print Swagger link
 
 # DOCKER COMMANDS ----------------------------------------------------------------------------------------------------
 up: ## Start the Docker containers
@@ -120,7 +118,6 @@ ensure-app-running:
 	else \
 		echo "PHP service is already running."; \
 	fi
-	@$(MAKE) print-swagger-link
 
 # NEW COMMAND TO PRINT SWAGGER LINK AND TOKENS ----------------------------------------------------------------------------------
 print-swagger-link: ## Print the Swagger UI link and authentication tokens
@@ -154,3 +151,17 @@ setup-auth-tables: wait-for-db ## Set up authentication tables
 		(echo "First attempt failed, retrying in 5 seconds..." && sleep 5 && \
 		docker-compose exec -T db mysql -uroot -proot lotr < app/opt/db/setup_auth_tables.sql)
 	@echo "Authentication tables setup completed."
+
+# Add this to the list of commands in the Makefile
+
+open-docs: ## Open documentation files
+	@echo "Opening documentation files..."
+	@if command -v xdg-open > /dev/null; then \
+		xdg-open documentation/SETUP.md; \
+		xdg-open documentation/TESTING.md; \
+	elif command -v open > /dev/null; then \
+		open documentation/SETUP.md; \
+		open documentation/TESTING.md; \
+	else \
+		echo "Unable to open documentation files automatically. Please open them manually in the 'documentation' folder."; \
+	fi

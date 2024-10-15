@@ -1,16 +1,14 @@
 # LOTR API Project
 
-Welcome to the Lord of the Rings API project! This API was developed as part of a job interview evaluation, showcasing various best practices and considerations for a high-demand API.
+Welcome to the Lord of the Rings API project! This API provides access to information about characters, factions, and equipment from the Lord of the Rings universe.
 
 ## Quick Start
 
-To get the project up and running quickly, just use this single command:
+To set up the project, initialize the database, populate it with sample data, and run all tests, use this single command:
 
 ```bash
 make setup-and-test
 ```
-
-This command will set up the entire project, initialize the database, populate it with sample data, and run all tests.
 
 ## Table of Contents
 

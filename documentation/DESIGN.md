@@ -5,11 +5,6 @@ This document outlines the design principles and assumptions made during the dev
 ## Design Principles
 
 1. **SOLID Principles**: The project adheres to SOLID principles to ensure maintainability and extensibility.
-   - Single Responsibility Principle: Each class has a single, well-defined responsibility.
-   - Open/Closed Principle: The codebase is open for extension but closed for modification.
-   - Liskov Substitution Principle: Subtypes are substitutable for their base types.
-   - Interface Segregation Principle: Interfaces are specific to client needs.
-   - Dependency Inversion Principle: High-level modules don't depend on low-level modules. Both depend on abstractions.
 
 2. **RESTful Design**: The API follows RESTful principles for resource naming and HTTP method usage.
 
@@ -42,5 +37,31 @@ This document outlines the design principles and assumptions made during the dev
 2. **Performance vs. Flexibility**: Some design choices prioritize performance (e.g., denormalization) while maintaining a balance with data flexibility.
 
 3. **Strict Typing vs. Development Speed**: PHP 8.1's strict typing is used to catch errors early, even though it might slightly slow down initial development.
+
+## Project Structure
+
+- `app/`: Contains the main application code
+  - `config/`: Configuration files
+  - `logs/`: Application logs
+  - `opt/`: Optional scripts and database files
+  - `src/`: Source code
+    - `Controllers/`: API endpoint controllers
+    - `Models/`: Data models
+    - `Repositories/`: Data access layer
+    - `Services/`: Business logic
+    - `Middleware/`: Request/response middleware
+    - `Formatters/`: Response formatters
+  - `tests/`: Unit and integration tests
+  - `vendor/`: Composer dependencies
+- `database/`: Database-related files
+  - `migrations/`: Database migration files
+  - `seeds/`: Database seeder files
+- `documentation/`: Project documentation files
+- `docker/`: Docker-related files
+- `public/`: Publicly accessible files
+  - `index.php`: Entry point for the application
+  - `swagger/`: Swagger UI files for API documentation
+
+This structure organizes the code for easy navigation and maintenance, separating concerns and following best practices for PHP application development.
 
 These design choices and assumptions aim to create a robust, scalable, and maintainable API that meets the requirements of a high-demand production environment while allowing for future growth and modifications.
