@@ -1,6 +1,6 @@
 # Design and Assumptions
 
-This document outlines the design principles and assumptions made during the development of the LOTR API.
+[Back to README](../README.md) | [Setup](SETUP.md) | [Testing](TESTING.md) | [Features](FEATURES.md)
 
 ## Design Principles
 
@@ -13,6 +13,8 @@ This document outlines the design principles and assumptions made during the dev
 4. **Dependency Injection**: Used to manage dependencies and facilitate testing.
 
 5. **Repository Pattern**: Implemented to abstract data access logic.
+
+6. **API Versioning**: The project is designed with multiple versions in mind. The current implementation is version 1 (v1), allowing for future versions to be added without breaking existing client integrations.
 
 ## Assumptions
 
@@ -64,4 +66,25 @@ This document outlines the design principles and assumptions made during the dev
 
 This structure organizes the code for easy navigation and maintenance, separating concerns and following best practices for PHP application development.
 
-These design choices and assumptions aim to create a robust, scalable, and maintainable API that meets the requirements of a high-demand production environment while allowing for future growth and modifications.
+## API Versioning
+
+The API is designed to support multiple versions, ensuring backward compatibility and allowing for future enhancements. Key aspects of our versioning approach include:
+
+1. **URL-based Versioning**: The current version (v1) is explicitly stated in the URL path (e.g., `/api/v1/characters`).
+
+
+### API Versioning Design Ideas
+
+To ensure our API remains flexible and scalable, we're considering the following design ideas for versioning:
+
+1. **Version-specific Controller Architecture**: Design a system where each API version has its own set of controllers, allowing for version-specific functionality and easier maintenance.
+
+2. **Shared Core Logic**: Architect a shared core of business logic and data access layers that can be utilized across different API versions, minimizing code duplication and improving maintainability.
+
+3. **Comprehensive Version Documentation**: Implement a documentation system that clearly outlines the differences between API versions, facilitating easier understanding and integration for developers.
+
+4. **Deprecation Policy Framework**: Develop a formal deprecation policy framework that defines the lifecycle of each API version, including support periods and migration timelines for clients.
+
+5. **Version Compatibility Layer**: Consider implementing a compatibility layer capable of translating between different API versions, smoothing the transition process for clients during upgrades.
+
+These design ideas aim to enhance the API's robustness, scalability, and user-friendliness, ensuring that the LOTR API can evolve while maintaining backwards compatibility and ease of use for our clients.

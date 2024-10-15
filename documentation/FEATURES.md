@@ -1,3 +1,7 @@
+# Features
+
+[Back to README](../README.md) | [Setup](SETUP.md) | [Testing](TESTING.md) | [Design](DESIGN.md)
+
 # Table of Contents
 
 1. [Authentication / Authorization](#authentication--authorization)
@@ -36,14 +40,15 @@ Input validation in this project is implemented in two layers:
 Controller Layer
 
 - Performs basic validation of request parameters
-- Handles type casting and default values
-- Uses a dedicated validator class for complex validations
+- Checks for required fields and ensures all fields are valid
+- Validates field types and rejects unexpected fields
+- Handles type casting and default values for optional parameters
+
 
 Service Layer
 
 - Performs more detailed business logic validations
 - Ensures data integrity and consistency
-- Uses the same validator class as the controller for reusability
 
 ### Key Aspects of Input Validation
 

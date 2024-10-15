@@ -439,7 +439,14 @@ $app->group('/v1', function ($group) use ($container) {
  *     ),
  *     @OA\RequestBody(
  *         required=true,
- *         @OA\JsonContent(ref="#/components/schemas/Character")
+ *         @OA\JsonContent(
+ *             required={"name", "birth_date", "kingdom"},
+ *             @OA\Property(property="name", type="string"),
+ *             @OA\Property(property="birth_date", type="string", format="date"),
+ *             @OA\Property(property="kingdom", type="string"),
+ *             @OA\Property(property="equipment_id", type="integer"),
+ *             @OA\Property(property="faction_id", type="integer")
+ *         )
  *     ),
  *     @OA\Response(
  *         response=200,
@@ -634,7 +641,12 @@ $app->group('/v1', function ($group) use ($container) {
  *     ),
  *     @OA\RequestBody(
  *         required=true,
- *         @OA\JsonContent(ref="#/components/schemas/Equipment")
+ *         @OA\JsonContent(
+ *             required={"name", "type"},
+ *             @OA\Property(property="name", type="string"),
+ *             @OA\Property(property="type", type="string"),
+ *             @OA\Property(property="made_by", type="string")
+ *         )
  *     ),
  *     @OA\Response(
  *         response=200,
@@ -805,9 +817,13 @@ $app->group('/v1', function ($group) use ($container) {
  *         required=true,
  *         @OA\Schema(type="integer")
  *     ),
- *     @OA\RequestBody(
+ *      @OA\RequestBody(
  *         required=true,
- *         @OA\JsonContent(ref="#/components/schemas/Faction")
+ *         @OA\JsonContent(
+ *             required={"faction_name", "description"},
+ *             @OA\Property(property="faction_name", type="string"),
+ *             @OA\Property(property="description", type="string")
+ *         )
  *     ),
  *     @OA\Response(
  *         response=200,

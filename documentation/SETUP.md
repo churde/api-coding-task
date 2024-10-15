@@ -1,5 +1,7 @@
 # Setup and Build
 
+[Back to README](../README.md) | [Testing](TESTING.md) | [Design](DESIGN.md) | [Features](FEATURES.md)
+
 This document provides detailed instructions on how to set up and build the LOTR API project.
 
 ## Quick Start
@@ -7,7 +9,7 @@ This document provides detailed instructions on how to set up and build the LOTR
 To set up the entire project, initialize the database, populate it with sample data, run all tests, and generate authentication tokens:
 
 ```bash
-make setup-and-test
+make setup-and-run-tests
 ```
 
 This command will:

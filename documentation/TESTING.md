@@ -1,5 +1,7 @@
 # Testing the LOTR API
 
+[Back to README](../README.md) | [Setup](SETUP.md) | [Design](DESIGN.md) | [Features](FEATURES.md)
+
 This document provides comprehensive guidance on testing the LOTR API, including manual testing with Swagger UI and automated unit testing.
 
 ## Environment Setup
