@@ -3,6 +3,7 @@
 use App\Controllers\CharacterController;
 use App\Interfaces\CacheInterface;
 use App\Interfaces\CharacterServiceInterface;
+use App\Middleware\AuthMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Models\Character;
 use App\Services\Auth;
@@ -221,28 +222,8 @@ $app = AppFactory::createFromContainer($container);
 // Add body parsing middleware
 $app->addBodyParsingMiddleware();
 
-// Create middleware
-$authMiddleware = new class($container) {
-    private Container $container;
-
-    public function __construct(Container $container) {
-        $this->container = $container;
-    }
-
-    public function __invoke(Request $request, $handler): Response {
-        $auth = $this->container->get('auth');
-        $token = $request->getHeaderLine('Authorization');
-        $token = str_replace('Bearer ', '', $token);
-        if (!$auth->validateToken($token)) {
-            $response = new SlimResponse();
-            $response->getBody()->write(json_encode(['error' => 'Unauthorized']));
-            return $response
-                ->withStatus(401)
-                ->withHeader('Content-Type', 'application/json');
-        }
-        return $handler->handle($request);
-    }
-};
+// Replace the existing authMiddleware with the new class
+$authMiddleware = new AuthMiddleware($container);
 
 $rateLimitMiddleware = new RateLimitMiddleware(
     $container->get(CacheInterface::class),
