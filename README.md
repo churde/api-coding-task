@@ -1,50 +1,43 @@
-# API Backend Coding Task
+# LOTR API Project
 
-This is the technical test project for API oriented backends.
+Welcome to the Lord of the Rings API project! This API was developed as part of a job interview evaluation, showcasing various best practices and considerations for a high-demand API.
 
-## Technical requirements
+## Quick Start
 
-- [Docker](https://www.docker.com/)
-
-## Build
+To get the project up and running quickly, just use this single command:
 
 ```bash
-make build
+make setup-and-test
 ```
 
-This command executes the Docker image building process and performs the [Composer](https://getcomposer.org) dependencies installation.
+This command will set up the entire project, initialize the database, populate it with sample data, and run all tests.
 
----
+## Table of Contents
 
-Type `make help` for more tasks present in `Makefile`.
+1. [Setup and Build](SETUP.md)
+2. [Testing with Swagger](TESTING.md)
+3. [Design and Assumptions](DESIGN.md)
+4. [Features](FEATURES.md)
+   - Project Structure
+   - Input Validation
+   - Response Formatters
+   - Search Functionality
+   - Pagination
+   - Rate Limiting
+   - Unit Testing
 
-## Functional requirements
+For more detailed instructions on setup and individual steps, please refer to the [Setup and Build](SETUP.md) guide.
 
-**Implement a CRUD (Create-Read-Update-Delete) API.**
+## Technologies Used
 
-The following add-ons will be positively evaluated:
+- PHP 8.1
+- MySQL 8.0
+- Docker and Docker Compose
+- PHPUnit for testing
+- Swagger for API documentation
 
-- Authentication
-- Authorization
-- Cache
-- Documentation
+## Contact
 
----
+If you have any questions or need further clarification, please don't hesitate to contact me at churde@gmail.com
 
-A light infrastructure is provided with a populated MySQL database with example data and a web server using PHP built-in development server.
-
-## Non functional requirements
-
-- The presence of unit, integration and acceptance tests will positively appreciated.
-- Use whatever you want to achieve this: MVC, hexagonal arquitecture, DDD, etc.
-- A deep knowledge about SOLID, YAGNI or KISS would be positively evaluated.
-- DevOps knowledge (GitHub Actions, Jenkins, etc.) would be appreciated too.
-- It's important to find a balance between code quality and deadline; releasing a non functional application in time or a perfect application out of time may be negatively evaluated.
-- Good and well-documented commits will be appreciated.
-- Efficient and smart use of third party libraries will be positively appreciated.
-
----
-
-Beyond the requirements of this test we want to see what you can do, feel free to show us your real potential and, the
-most important part, have fun!
-
+Thank you for reviewing my project!

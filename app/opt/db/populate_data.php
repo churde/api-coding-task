@@ -6,6 +6,12 @@ require '/var/www/vendor/autoload.php';
 
 use Faker\Factory;
 
+// Parse command line arguments
+$options = getopt("", ["factions:", "equipments:", "characters:"]);
+$numFactions = isset($options['factions']) ? intval($options['factions']) : 43;
+$numEquipments = isset($options['equipments']) ? intval($options['equipments']) : 86;
+$numCharacters = isset($options['characters']) ? intval($options['characters']) : 10000;
+
 // Database connection
 $host = 'db';
 $db = 'lotr'; // Change this to your database name
@@ -33,6 +39,11 @@ $faker = Factory::create();
 $lotrFactions = ['Elves', 'Men', 'Dwarves', 'Hobbits', 'Orcs', 'Uruk-hai', 'Ents', 'Wizards'];
 $lotrEquipmentTypes = ['Sword', 'Bow', 'Axe', 'Staff', 'Armor', 'Shield', 'Ring'];
 $lotrKingdoms = ['Gondor', 'Rohan', 'Rivendell', 'Lothlorien', 'Erebor', 'Moria', 'The Shire', 'Mordor', 'Isengard'];
+
+// Additional faction and equipment name components
+$factionAdjectives = ['Northern', 'Southern', 'Eastern', 'Western', 'High', 'Low', 'Dark', 'Light', 'Ancient', 'Noble'];
+$equipmentAdjectives = ['Mighty', 'Enchanted', 'Cursed', 'Blessed', 'Legendary', 'Ancient', 'Elven', 'Dwarven', 'Mortal', 'Immortal'];
+$equipmentNouns = ['Doom', 'Fate', 'Destiny', 'Glory', 'Honor', 'Power', 'Wisdom', 'Vengeance', 'Justice', 'Peace'];
 
 // Function to generate appropriate birth date based on race
 function generateBirthDate($race) {
@@ -64,37 +75,66 @@ function generateBirthDate($race) {
 }
 
 // Populate Factions
-for ($i = 1; $i <= 43; $i++) {
+$factionIds = [];
+$usedFactionNames = [];
+for ($i = 1; $i <= $numFactions; $i++) {
+    do {
+        if (count($usedFactionNames) >= count($lotrFactions) * count($factionAdjectives)) {
+            $factionName = $faker->unique()->word . ' ' . $faker->randomElement($lotrFactions);
+        } else {
+            $factionName = $faker->randomElement($factionAdjectives) . ' ' . $faker->randomElement($lotrFactions);
+        }
+    } while (in_array($factionName, $usedFactionNames));
+
+    $usedFactionNames[] = $factionName;
+
     $stmt = $pdo->prepare("INSERT INTO factions (faction_name, description) VALUES (:faction_name, :description)");
     $stmt->execute([
-        'faction_name' => $faker->randomElement($lotrFactions),
+        'faction_name' => $factionName,
         'description' => $faker->sentence,
     ]);
+    $factionIds[] = $pdo->lastInsertId();
 }
 
 // Populate Equipments
-for ($i = 1; $i <= 86; $i++) {
+$equipmentIds = [];
+$usedEquipmentNames = [];
+for ($i = 1; $i <= $numEquipments; $i++) {
+    do {
+        if (count($usedEquipmentNames) >= count($equipmentAdjectives) * count($equipmentNouns) * count($lotrEquipmentTypes)) {
+            $equipmentName = $faker->unique()->word . ' ' . $faker->randomElement($lotrEquipmentTypes);
+        } else {
+            $equipmentName = $faker->randomElement($equipmentAdjectives) . ' ' . 
+                             $faker->randomElement($equipmentNouns) . ' of ' . 
+                             $faker->randomElement($lotrEquipmentTypes);
+        }
+    } while (in_array($equipmentName, $usedEquipmentNames));
+
+    $usedEquipmentNames[] = $equipmentName;
+
     $stmt = $pdo->prepare("INSERT INTO equipments (name, type, made_by) VALUES (:name, :type, :made_by)");
     $stmt->execute([
-        'name' => $faker->word . ' of ' . $faker->word,
+        'name' => $equipmentName,
         'type' => $faker->randomElement($lotrEquipmentTypes),
         'made_by' => $faker->randomElement(['Elves', 'Dwarves', 'Men', 'Orcs']),
     ]);
+    $equipmentIds[] = $pdo->lastInsertId();
 }
 
 // Populate Characters
-for ($i = 1; $i <= 100; $i++) {
-    $race = $faker->randomElement($lotrFactions);
-    $birthDate = generateBirthDate($race);
+for ($i = 1; $i <= $numCharacters; $i++) {
+    $faction = $faker->randomElement($lotrFactions);
+    $birthDate = generateBirthDate($faction);
 
     $stmt = $pdo->prepare("INSERT INTO characters (name, birth_date, kingdom, equipment_id, faction_id) VALUES (:name, :birth_date, :kingdom, :equipment_id, :faction_id)");
     $stmt->execute([
         'name' => $faker->firstName . ' ' . $faker->lastName,
         'birth_date' => $birthDate,
         'kingdom' => $faker->randomElement($lotrKingdoms),
-        'equipment_id' => rand(1, 100),
-        'faction_id' => rand(1, 100),
+        'equipment_id' => $faker->randomElement($equipmentIds),
+        'faction_id' => $faker->randomElement($factionIds),
     ]);
 }
 
 echo "Database populated with fake data successfully.\n";
+echo "Created $numFactions factions, $numEquipments equipments, and $numCharacters characters.\n";

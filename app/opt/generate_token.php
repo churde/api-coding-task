@@ -20,5 +20,3 @@ $tokenManager = new TokenManager($secretKey);
 $token = $tokenManager->generateToken($userId, $roleId);
 
 echo "Generated token: " . $token . "\n";
-echo "User ID: " . $userId . "\n";
-echo "Role ID: " . $roleId . "\n";
