@@ -9,7 +9,18 @@ This document provides comprehensive guidance on testing the LOTR API, including
 Before testing, ensure your environment is properly set up:
 
 1. Follow the instructions in SETUP.md to install all dependencies.
-2. Make sure your .env file is configured correctly.
+
+
+## Default config: cache and rate limiter enabled
+
+By default, caching and rate limiting are enabled for all routes. This configuration enhances performance and protects against abuse, but can be adjusted if needed:
+
+   - Caching: Improves response times by storing frequently accessed data.
+   - Rate Limiting: Prevents excessive requests from a single client.
+
+   These settings can be modified in the `config/app.php` file to suit your specific testing or development needs. For instance, you might want to disable caching temporarily to ensure you're always testing against the most up-to-date data.
+
+
 
 ## Running Automated Tests
 
